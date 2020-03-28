@@ -1,6 +1,5 @@
 ﻿using Mono.Data.Sqlite;
 using System;
-using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq.Expressions;
@@ -26,7 +25,7 @@ namespace Naukri.Sqlite
 
         #endregion
 
-        private readonly NSqliteField[] sqliteFields;
+        private readonly NSqliteFieldInfo[] sqliteFields;
 
         private readonly StringBuilder commandBuilder;
 
@@ -56,13 +55,13 @@ namespace Naukri.Sqlite
             TableName = tableAttr.Name;
             // 取得有效的欄位資訊
             var props = schemaType.GetProperties(BINDING_FLAGS);
-            sqliteFields = new NSqliteField[props.Length];
+            sqliteFields = new NSqliteFieldInfo[props.Length];
             int len = 0;
             foreach (var prop in props)
             {
                 if (prop.GetCustomAttribute<SqliteFieldAttribute>() != null)
                 {
-                    sqliteFields[len++] = new NSqliteField(prop);
+                    sqliteFields[len++] = new NSqliteFieldInfo(prop);
                 }
             }
             Array.Resize(ref sqliteFields, len);
@@ -78,32 +77,70 @@ namespace Naukri.Sqlite
 
         public static implicit operator NSqliteCommand<TTable>(SqliteCommand command) => new NSqliteCommand<TTable>(command);
 
-        private IInsert InsertOrReplace(string command, TTable row)
+        private NSqliteFieldInfo[] VerifyAndGetInfos(object data)
+        {
+            // 取得資料架構
+            var type = data.GetType();
+            var infos = type.GetProperties(BINDING_FLAGS);
+            // 驗證所有屬性皆具有 SqliteField 特性並回傳對應的 NSqliteFieldInfo[]
+            var res = new NSqliteFieldInfo[infos.Length];
+            for (int i = 0; i < infos.Length; i++)
+            {
+                int j = sqliteFields.Length;
+                // 比對是否有相同的名稱被註冊 (是 NSqliteField)
+                while (--j >= 0 && infos[i].Name != sqliteFields[j].Info.Name)
+                    ;
+                if (j >= 0)
+                {
+                    res[i] = sqliteFields[j];
+                    res[i].Info = infos[i];
+                }
+                else
+                {
+                    throw new Exception($"成員\"{infos[i].Name}\" 缺少 [SqliteField] 標籤");
+                }
+            }
+            return res;
+        }
+
+        private IInsert InsertCommandBuilder(string command, object data, NSqliteFieldInfo[] fields)
         {
             commandBuilder
-             .Append(command, " INTO ", TableName, " (")
-             .Append(sqliteFields, ", ")
-             .Append(") VALUES (")
-             .Append(sqliteFields, f =>
-             {
-                 var res = f.GetValueText(row, out object blob);
-                 if (Serialize(blob, out byte[] data)) // 處理 BLOB 物件
-                 {
-                     sqliteCommand.Prepare();
-                     sqliteCommand.Parameters.Add(res, DbType.Binary, data.Length);
-                     sqliteCommand.Parameters[res].Value = data;
-                 }
-                 return res;
-             }, ", ")
-             .Append(");");
+            .Append(command, " INTO ", TableName, " (")
+            .Append(fields, f => f.Name, ", ")
+            .Append(") VALUES (")
+            .Append(fields, f =>
+            {
+                var res = f.GetValueText(data, out var blob);
+                if (Serialize(blob, out byte[] sData)) // 處理 BLOB 物件
+                {
+                    sqliteCommand.Prepare();
+                    sqliteCommand.Parameters.Add(res, DbType.Binary, sData.Length);
+                    sqliteCommand.Parameters[res].Value = sData;
+                }
+                return res;
+            }, ", ")
+            .Append(");");
             return this;
         }
 
-        public IInsert Insert(TTable row)
-            => InsertOrReplace("INSERT", row);
+        #region -- Insert --
 
-        public IInsert InsertOrReplace(TTable row)
-            => InsertOrReplace("REPLACE", row);
+        public IInsert Insert(TTable data)
+            => InsertCommandBuilder("INSERT", data, sqliteFields);
+
+        public IInsert Insert(object data)
+            => InsertCommandBuilder("INSERT", data, VerifyAndGetInfos(data));
+
+        public IInsert InsertOrReplace(TTable data)
+            => InsertCommandBuilder("REPLACE", data, sqliteFields);
+
+        public IInsert InsertOrReplace(object data)
+            => InsertCommandBuilder("REPLACE", data, VerifyAndGetInfos(data));
+
+        #endregion
+
+        #region -- Select --
 
         public ISelect<TTable> SelectAll()
         {
@@ -114,27 +151,17 @@ namespace Naukri.Sqlite
         public ISelect<TTable> Select(object fields)
         {
             // 取得資料架構
-            var type = fields.GetType();
-            var props = type.GetProperties(BINDING_FLAGS);
-            // 驗證查詢欄位皆具有 SqliteField 屬性
-            foreach (var prop in props)
-            {
-                int i = props.Length;
-                while (--i >= 0 && prop.Name != sqliteFields[i].Name)
-                    ;
-                if (i < 0)
-                {
-                    throw new Exception($"欄位 {prop.Name} 缺少 [SqliteField] 屬性");
-                }
-            }
+            var infos = VerifyAndGetInfos(fields);
             // 生成 SQL
             commandBuilder
                 .Append("SELECT ")
-                .Append(props, p => p.Name, ", ")
+                .Append(infos, i => i.Name, ", ")
                 .Append(" FROM ", TableName);
             return this;
         }
 
+        #endregion
+        
         public IUpdate<TTable> Update(TTable row)
         {
             throw new NotImplementedException();

@@ -11,9 +11,13 @@ namespace Naukri.Sqlite
 
     public interface IInsertable<Table>
     {
-        IInsert Insert(Table row);
+        IInsert Insert(Table data);
 
-        IInsert InsertOrReplace(Table row);
+        IInsert Insert(object data);
+
+        IInsert InsertOrReplace(Table data);
+
+        IInsert InsertOrReplace(object data);
     }
 
     public interface ISelectable<Table>
