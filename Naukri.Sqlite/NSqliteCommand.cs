@@ -1,12 +1,13 @@
 ﻿using Mono.Data.Sqlite;
 using System;
 using System.Data;
+using System.Data.Common;
 using System.IO;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
-using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Naukri.Sqlite
 {
@@ -324,31 +325,48 @@ namespace Naukri.Sqlite
 
         #endregion
 
-        SqliteDataReader IExecuteQueryable.ExecuteReader()
-        {
-            throw new NotImplementedException();
-        }
-
-        T IExecuteQueryable.ExecuteScalar<T>()
-        {
-            throw new NotImplementedException();
-        }
-
-        void IExecuteQueryable.ExecuteReader(Action<SqliteDataReader> action)
-        {
-            throw new NotImplementedException();
-        }
-
-        T IExecuteQueryable.ExecuteReader<T>(Func<SqliteDataReader, T> func)
-        {
-            throw new NotImplementedException();
-        }
-
+        #region -- ExecuteNonQuery --
 
         int IExecuteNonQueryable.ExecuteNonQuery()
         {
-            throw new NotImplementedException();
+            sqliteCommand.CommandText = CommandText;
+            return sqliteCommand.ExecuteNonQuery();
         }
+
+        Task<int> IExecuteNonQueryable.ExecuteNonQueryAsync()
+        {
+            sqliteCommand.CommandText = CommandText;
+            return sqliteCommand.ExecuteNonQueryAsync();
+        }
+
+        #endregion
+
+        #region -- ExecuteQuery --
+
+        SqliteDataReader IExecuteQueryable.ExecuteReader()
+        {
+            sqliteCommand.CommandText = CommandText;
+            return sqliteCommand.ExecuteReader();
+        }
+
+        Task<DbDataReader> IExecuteQueryable.ExecuteReaderAsync()
+        {
+            sqliteCommand.CommandText = CommandText;
+            return sqliteCommand.ExecuteReaderAsync();
+        }
+
+        object IExecuteQueryable.ExecuteScalar()
+        {
+            sqliteCommand.CommandText = CommandText;
+            return sqliteCommand.ExecuteScalar();
+        }
+
+        Task<object> IExecuteQueryable.ExecuteScalarAsync()
+        {
+            sqliteCommand.CommandText = CommandText;
+            return sqliteCommand.ExecuteScalarAsync();
+        }
+
+        #endregion
     }
 }
-

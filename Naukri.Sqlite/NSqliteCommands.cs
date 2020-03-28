@@ -1,6 +1,8 @@
 ﻿using Mono.Data.Sqlite;
 using System;
+using System.Data.Common;
 using System.Linq.Expressions;
+using System.Threading.Tasks;
 
 namespace Naukri.Sqlite
 {
@@ -75,20 +77,22 @@ namespace Naukri.Sqlite
         ILimit Limit(int count, int offset);
     }
 
+    public interface IExecuteNonQueryable
+    {
+        int ExecuteNonQuery();
+
+        Task<int> ExecuteNonQueryAsync();
+    }
+
     public interface IExecuteQueryable
     {
         SqliteDataReader ExecuteReader();
 
-        T ExecuteScalar<T>();
+        Task<DbDataReader> ExecuteReaderAsync();
 
-        void ExecuteReader(Action<SqliteDataReader> action);
+        object ExecuteScalar();
 
-        T ExecuteReader<T>(Func<SqliteDataReader, T> func);
-    }
-
-    public interface IExecuteNonQueryable
-    {
-        int ExecuteNonQuery();
+        Task<object> ExecuteScalarAsync();
     }
 
     public interface ICommand : ICommandable { }
