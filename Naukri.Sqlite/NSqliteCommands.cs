@@ -29,14 +29,14 @@ namespace Naukri.Sqlite
 
     public interface IUpdateable<Table>
     {
-        IUpdate<Table> Update(Table row);
+        IUpdate<Table> Update(Table data);
+
+        IUpdate<Table> Update(object data);
     }
 
     public interface IDeleteable<Table>
     {
         IDelete<Table> Delete();
-
-        IDelete<Table> Delete(Table row);
     }
 
     public interface IDistinctable<Table>

@@ -111,16 +111,34 @@ namespace Naukri.Sqlite
             .Append(") VALUES (")
             .Append(fields, f =>
             {
-                var res = f.GetValueText(data, out var blob);
+                var valueText = f.GetValueText(data, out var blob);
                 if (Serialize(blob, out byte[] sData)) // 處理 BLOB 物件
                 {
                     sqliteCommand.Prepare();
-                    sqliteCommand.Parameters.Add(res, DbType.Binary, sData.Length);
-                    sqliteCommand.Parameters[res].Value = sData;
+                    sqliteCommand.Parameters.Add(valueText, DbType.Binary, sData.Length);
+                    sqliteCommand.Parameters[valueText].Value = sData;
                 }
-                return res;
+                return valueText;
             }, ", ")
-            .Append(");");
+            .Append(")");
+            return this;
+        }
+
+        private IUpdate<TTable> UpdateCommandBuilder(object data, NSqliteFieldInfo[] fields)
+        {
+            commandBuilder
+            .Append("UPDATE ", TableName, " SET ")
+            .Append(fields, f =>
+            {
+                var valueText = f.GetValueText(data, out var blob);
+                if (Serialize(blob, out byte[] sData)) // 處理 BLOB 物件
+                {
+                    sqliteCommand.Prepare();
+                    sqliteCommand.Parameters.Add(valueText, DbType.Binary, sData.Length);
+                    sqliteCommand.Parameters[valueText].Value = sData;
+                }
+                return $"{f.Name} = {valueText}";
+            }, ", ");
             return this;
         }
 
@@ -161,21 +179,26 @@ namespace Naukri.Sqlite
         }
 
         #endregion
-        
-        public IUpdate<TTable> Update(TTable row)
-        {
-            throw new NotImplementedException();
-        }
+
+        #region -- Update --
+
+        public IUpdate<TTable> Update(TTable data)
+            => UpdateCommandBuilder(data, sqliteFields);
+
+        public IUpdate<TTable> Update(object data)
+            => UpdateCommandBuilder(data, VerifyAndGetInfos(data));
+
+        #endregion
+
+        #region  -- Delete --
 
         public IDelete<TTable> Delete()
         {
-            throw new NotImplementedException();
+            commandBuilder.Append("DELETE FROM ", TableName);
+            return this;
         }
 
-        public IDelete<TTable> Delete(TTable row)
-        {
-            throw new NotImplementedException();
-        }
+        #endregion
 
         IDistinct<TTable> IDistinctable<TTable>.Distinct()
         {
