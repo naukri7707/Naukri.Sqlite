@@ -202,7 +202,8 @@ namespace Naukri.Sqlite
 
         IDistinct<TTable> IDistinctable<TTable>.Distinct()
         {
-            throw new NotImplementedException();
+            command.Append(" DISTINCT");
+            return this;
         }
 
         IWhere<TTable> IWhereable<TTable, IWhere<TTable>>.Where(Expression<Func<TTable, bool>> expression)
