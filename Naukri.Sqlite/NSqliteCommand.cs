@@ -11,8 +11,8 @@ using System.Text.RegularExpressions;
 namespace Naukri.Sqlite
 {
     public class NSqliteCommand<TTable>
-        : ICommand, IEntry<TTable>, IInsert, ISelect<TTable>, IUpdate<TTable>, IDelete<TTable>, IDistinct<TTable>, IWhere<TTable>,
-          ICondition<TTable>, IGroupBy<TTable>, IHaving<TTable>, IOrderBy, ILimit, IExecuteQuery, IExecuteNonQuery
+        : ICommand, IEntry<TTable>, IInsert, ISelect<TTable>, IUpdate<TTable>, IDelete<TTable>, IDistinct<TTable>
+        , IWhere<TTable>, IGroupBy<TTable>, IHaving<TTable>, IOrderBy, ILimit, IExecuteQuery, IExecuteNonQuery
     {
         private const BindingFlags BINDING_FLAGS = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
@@ -202,9 +202,7 @@ namespace Naukri.Sqlite
 
         public ISelect<TTable> Select(object fields)
         {
-            // 取得資料架構
             var infos = VerifyAndGetInfos(fields);
-            // 生成 SQL
             commandBuilder
                 .Append("SELECT ")
                 .Append(infos, i => i.Name, ", ")
@@ -271,27 +269,32 @@ namespace Naukri.Sqlite
 
         #endregion
 
-        IGroupBy<TTable> IGroupByable<TTable>.GroupBy(params dynamic[] columns)
+        #region -- GroupBy & Having --
+
+        IGroupBy<TTable> IGroupByable<TTable>.GroupBy(object fields)
         {
-            throw new NotImplementedException();
+            var infos = VerifyAndGetInfos(fields);
+            commandBuilder
+                .Append(" GROUP BY ")
+                .Append(infos, i => i.Name, ", ");
+            return this;
         }
 
-        IGroupBy<TTable> IGroupByable<TTable>.GroupBy(Func<TTable, dynamic> func)
+        IHaving<TTable> IHavingable<TTable>.Having(Expression<Func<bool>> expression)
         {
-            throw new NotImplementedException();
+            commandBuilder.Append(" HAVING ", SqliteExpressionVisitor.GetSQL(expression));
+            return this;
         }
 
-        IOrderBy IOrderByable<TTable>.OrderByAsc(params dynamic[] columns)
+        IHaving<TTable> IHavingable<TTable>.Having(Expression<Func<TTable, bool>> expression)
         {
-            throw new NotImplementedException();
+            commandBuilder.Append(" HAVING ", SqliteExpressionVisitor.GetSQL(expression));
+            return this;
         }
 
-        IOrderBy IOrderByable<TTable>.OrderByDesc(params dynamic[] columns)
-        {
-            throw new NotImplementedException();
-        }
+        #endregion
 
-        IOrderBy IOrderByable<TTable>.OrderBy(Func<TTable, dynamic> func, int sortBy)
+        IOrderBy IOrderByable<TTable>.OrderBy(object fields, int sortBy)
         {
             throw new NotImplementedException();
         }
@@ -323,11 +326,6 @@ namespace Naukri.Sqlite
 
 
         int IExecuteNonQueryable.ExecuteNonQuery()
-        {
-            throw new NotImplementedException();
-        }
-
-        public IHaving<TTable> Having()
         {
             throw new NotImplementedException();
         }

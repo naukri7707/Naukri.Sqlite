@@ -53,24 +53,19 @@ namespace Naukri.Sqlite
 
     public interface IGroupByable<Table>
     {
-        IGroupBy<Table> GroupBy(params dynamic[] columns);
-
-        IGroupBy<Table> GroupBy(Func<Table, dynamic> func);
+        IGroupBy<Table> GroupBy(object fields);
     }
 
     public interface IHavingable<Table>
     {
+        IHaving<Table> Having(Expression<Func<bool>> expression);
 
-        IHaving<Table> Having();
+        IHaving<Table> Having(Expression<Func<Table, bool>> expression);
     }
 
     public interface IOrderByable<Table>
     {
-        IOrderBy OrderByAsc(params dynamic[] columns);
-
-        IOrderBy OrderByDesc(params dynamic[] columns);
-
-        IOrderBy OrderBy(Func<Table, dynamic> func, int sortBy);
+        IOrderBy OrderBy(object fields, int sortBy = 1);
     }
 
     public interface ILimitable
