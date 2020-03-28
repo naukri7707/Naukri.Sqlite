@@ -20,7 +20,7 @@ namespace Naukri.Sqlite
     {
         ISelect<Table> SelectAll();
 
-        ISelect<Table> Select(object schema);
+        ISelect<Table> Select(object fields);
     }
 
     public interface IUpdateable<Table>

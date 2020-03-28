@@ -111,10 +111,10 @@ namespace Naukri.Sqlite
             return this;
         }
 
-        public ISelect<TTable> Select(object schema)
+        public ISelect<TTable> Select(object fields)
         {
             // 取得資料架構
-            var type = schema.GetType();
+            var type = fields.GetType();
             var props = type.GetProperties(BINDING_FLAGS);
             // 驗證查詢欄位皆具有 SqliteField 屬性
             foreach (var prop in props)
