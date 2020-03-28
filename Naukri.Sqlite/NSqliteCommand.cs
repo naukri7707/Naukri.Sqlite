@@ -76,15 +76,32 @@ namespace Naukri.Sqlite
 
         public static implicit operator NSqliteCommand<TTable>(SqliteCommand command) => new NSqliteCommand<TTable>(command);
 
-        public IInsert Insert(TTable row)
+        private IInsert InsertOrReplace(string command, TTable row)
         {
-            throw new NotImplementedException();
+            commandBuilder
+             .Append($"{command} INTO {TableName} (")
+             .AppendArray(sqliteFields, ", ")
+             .Append(") VALUES (")
+             .AppendArray(sqliteFields, f =>
+             {
+                 var res = f.GetValueText(row, out object blob);
+                 if (Serialize(blob, out byte[] data)) // 處理 BLOB 物件
+                 {
+                     sqliteCommand.Prepare();
+                     sqliteCommand.Parameters.Add(res, DbType.Binary, data.Length);
+                     sqliteCommand.Parameters[res].Value = data;
+                 }
+                 return res;
+             }, ", ")
+             .Append(");");
+            return this;
         }
 
+        public IInsert Insert(TTable row)
+            => InsertOrReplace("INSERT", row);
+
         public IInsert InsertOrReplace(TTable row)
-        {
-            throw new NotImplementedException();
-        }
+            => InsertOrReplace("REPLACE", row);
 
         public ISelect<TTable> Select(params dynamic[] columns)
         {
@@ -178,7 +195,8 @@ namespace Naukri.Sqlite
 
         int IExecuteNonQueryable.ExecuteNonQuery()
         {
-            throw new NotImplementedException();
+            sqliteCommand.CommandText = CommandText;
+            return sqliteCommand.ExecuteNonQuery();
         }
 
         IHaving<TTable> IHavingable<TTable>.Having()
