@@ -7,6 +7,7 @@ namespace NUnitTest
         [SetUp]
         public void Setup()
         {
+            Evaluation.LogEvent = log => TestContext.WriteLine(log);
         }
 
         [Test]
