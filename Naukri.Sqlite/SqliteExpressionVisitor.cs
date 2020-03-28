@@ -35,7 +35,7 @@ namespace Naukri.Sqlite
         {
             switch (type)
             {
-                // 算術運算符
+                // 算術運算子
                 case ExpressionType.Add:
                     return " + ";
                 case ExpressionType.Subtract:
@@ -46,7 +46,7 @@ namespace Naukri.Sqlite
                     return " / ";
                 case ExpressionType.Modulo:
                     return " % ";
-                // 比較運算符
+                // 比較運算子
                 case ExpressionType.Equal:
                     return " == ";
                 case ExpressionType.NotEqual:
@@ -59,11 +59,23 @@ namespace Naukri.Sqlite
                     return " < ";
                 case ExpressionType.LessThanOrEqual:
                     return " <= ";
-                // 邏輯運算符
+                // 邏輯運算子
                 case ExpressionType.OrElse:
                     return " OR ";
                 case ExpressionType.AndAlso:
                     return " AND ";
+                // 位元運算子
+                case ExpressionType.And:
+                    return " & ";
+                case ExpressionType.Or:
+                    return " | ";
+                case ExpressionType.Not:
+                    return "~";
+                case ExpressionType.LeftShift:
+                    return "<<";
+                case ExpressionType.RightShift:
+                    return ">>";
+               
                 // 例外
                 default:
                     throw new Exception("不合法的 SQL");
