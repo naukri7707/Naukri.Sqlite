@@ -37,33 +37,33 @@ namespace Naukri.Sqlite
             {
                 // 算術運算符
                 case ExpressionType.Add:
-                    return "+";
+                    return " + ";
                 case ExpressionType.Subtract:
-                    return "-";
+                    return " - ";
                 case ExpressionType.Multiply:
-                    return "*";
+                    return " * ";
                 case ExpressionType.Divide:
-                    return "/";
+                    return " / ";
                 case ExpressionType.Modulo:
-                    return "%";
+                    return " % ";
                 // 比較運算符
                 case ExpressionType.Equal:
-                    return "==";
+                    return " == ";
                 case ExpressionType.NotEqual:
-                    return "!=";
+                    return " != ";
                 case ExpressionType.GreaterThan:
-                    return ">";
+                    return " > ";
                 case ExpressionType.GreaterThanOrEqual:
-                    return ">=";
+                    return " >= ";
                 case ExpressionType.LessThan:
-                    return "<";
+                    return " < ";
                 case ExpressionType.LessThanOrEqual:
-                    return "<=";
+                    return " <= ";
                 // 邏輯運算符
                 case ExpressionType.OrElse:
-                    return "OR";
+                    return " OR ";
                 case ExpressionType.AndAlso:
-                    return "AND";
+                    return " AND ";
                 // 例外
                 default:
                     throw new Exception("不合法的 SQL");
