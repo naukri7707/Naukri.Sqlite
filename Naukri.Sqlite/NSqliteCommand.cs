@@ -11,12 +11,19 @@ using System.Threading.Tasks;
 
 namespace Naukri.Sqlite
 {
+    public abstract class NSqliteCommand : ICommand
+    {
+        protected const BindingFlags BINDING_FLAGS = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+        public static Action<string> Log { get; set; }
+
+        public abstract string CommandText { get; }
+    }
+
     public class NSqliteCommand<TTable>
-        : ICommand, IEntry<TTable>, IInsert, ISelect<TTable>, IUpdate<TTable>, IDelete<TTable>, IDistinct<TTable>
+        : NSqliteCommand, IEntry<TTable>, IInsert, ISelect<TTable>, IUpdate<TTable>, IDelete<TTable>, IDistinct<TTable>
         , IWhere<TTable>, IGroupBy<TTable>, IHaving<TTable>, IOrderBy, ILimit, IExecuteQuery, IExecuteNonQuery
     {
-        private const BindingFlags BINDING_FLAGS = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
-
         #region -- InnerSqliteCommand
 
         protected readonly SqliteCommand sqliteCommand;
@@ -31,11 +38,9 @@ namespace Naukri.Sqlite
 
         private readonly StringBuilder commandBuilder;
 
-        public string CommandText => commandBuilder.ToString();
+        public override string CommandText => commandBuilder.ToString();
 
         public string TableName { get; }
-
-        string ICommandable.CommandText => throw new NotImplementedException();
 
         public NSqliteCommand() : this(null, null, null) { }
 
@@ -177,6 +182,8 @@ namespace Naukri.Sqlite
             }
         }
 
+        #region -- Commands --
+
         #region -- Insert --
 
         public IInsert Insert(TTable data)
@@ -240,6 +247,7 @@ namespace Naukri.Sqlite
             commandBuilder.Append(" DISTINCT");
             return this;
         }
+
         #endregion
 
         #region -- Where --
@@ -330,12 +338,14 @@ namespace Naukri.Sqlite
         int IExecuteNonQueryable.ExecuteNonQuery()
         {
             sqliteCommand.CommandText = CommandText;
+            Log(sqliteCommand.CommandText);
             return sqliteCommand.ExecuteNonQuery();
         }
 
         Task<int> IExecuteNonQueryable.ExecuteNonQueryAsync()
         {
             sqliteCommand.CommandText = CommandText;
+            Log(sqliteCommand.CommandText);
             return sqliteCommand.ExecuteNonQueryAsync();
         }
 
@@ -346,27 +356,33 @@ namespace Naukri.Sqlite
         SqliteDataReader IExecuteQueryable.ExecuteReader()
         {
             sqliteCommand.CommandText = CommandText;
+            Log(sqliteCommand.CommandText);
             return sqliteCommand.ExecuteReader();
         }
 
         Task<DbDataReader> IExecuteQueryable.ExecuteReaderAsync()
         {
             sqliteCommand.CommandText = CommandText;
+            Log(sqliteCommand.CommandText);
             return sqliteCommand.ExecuteReaderAsync();
         }
 
         object IExecuteQueryable.ExecuteScalar()
         {
             sqliteCommand.CommandText = CommandText;
+            Log(sqliteCommand.CommandText);
             return sqliteCommand.ExecuteScalar();
         }
 
         Task<object> IExecuteQueryable.ExecuteScalarAsync()
         {
             sqliteCommand.CommandText = CommandText;
+            Log(sqliteCommand.CommandText);
             return sqliteCommand.ExecuteScalarAsync();
         }
 
+        #endregion 
+        
         #endregion
     }
 }
