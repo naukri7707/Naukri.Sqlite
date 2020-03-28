@@ -119,8 +119,8 @@ namespace Naukri.Sqlite
 
     public interface ILimit : ICommand, IExecuteQueryable { };
 
-    public interface IExecuteQuery : ICommand { }
+    public interface IExecuteQuery : ICommand, IExecuteQueryable { }
 
-    public interface IExecuteNonQuery : ICommand { }
+    public interface IExecuteNonQuery : ICommand, IExecuteNonQueryable { }
 
 }
