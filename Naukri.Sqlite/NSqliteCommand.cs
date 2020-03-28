@@ -10,7 +10,9 @@ using System.Text;
 
 namespace Naukri.Sqlite
 {
-    public class NSqliteCommand<TTable> : ICommand, IEntry<TTable>, IInsert, ISelect<TTable>, IUpdate<TTable>, IDelete<TTable>, IDistinct<TTable>, IWhere<TTable>, IGroupBy<TTable>, IHaving<TTable>, IOrderBy, ILimit, IExecuteQuery, IExecuteNonQuery
+    public class NSqliteCommand<TTable>
+        : ICommand, IEntry<TTable>, IInsert, ISelect<TTable>, IUpdate<TTable>, IDelete<TTable>, IDistinct<TTable>,
+          IWhere<TTable>, IGroupBy<TTable>, IHaving<TTable>, IOrderBy, ILimit, IExecuteQuery, IExecuteNonQuery
     {
         private const BindingFlags BINDING_FLAGS = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
@@ -79,10 +81,10 @@ namespace Naukri.Sqlite
         private IInsert InsertOrReplace(string command, TTable row)
         {
             commandBuilder
-             .Append($"{command} INTO {TableName} (")
-             .AppendArray(sqliteFields, ", ")
+             .Append(command, " INTO ", TableName, " (")
+             .Append(sqliteFields, ", ")
              .Append(") VALUES (")
-             .AppendArray(sqliteFields, f =>
+             .Append(sqliteFields, f =>
              {
                  var res = f.GetValueText(row, out object blob);
                  if (Serialize(blob, out byte[] data)) // 處理 BLOB 物件
@@ -103,9 +105,34 @@ namespace Naukri.Sqlite
         public IInsert InsertOrReplace(TTable row)
             => InsertOrReplace("REPLACE", row);
 
-        public ISelect<TTable> Select(params dynamic[] columns)
+        public ISelect<TTable> SelectAll()
         {
-            throw new NotImplementedException();
+            commandBuilder.Append("SELECT * FROM ", TableName);
+            return this;
+        }
+
+        public ISelect<TTable> Select(object schema)
+        {
+            // 取得資料架構
+            var type = schema.GetType();
+            var props = type.GetProperties(BINDING_FLAGS);
+            // 驗證查詢欄位皆具有 SqliteField 屬性
+            foreach (var prop in props)
+            {
+                int i = props.Length;
+                while (--i >= 0 && prop.Name != sqliteFields[i].Name)
+                    ;
+                if (i < 0)
+                {
+                    throw new Exception($"欄位 {prop.Name} 缺少 [SqliteField] 屬性");
+                }
+            }
+            // 生成 SQL
+            commandBuilder
+                .Append("SELECT ")
+                .Append(props, p => p.Name, ", ")
+                .Append(" FROM ", TableName);
+            return this;
         }
 
         public IUpdate<TTable> Update(TTable row)
@@ -195,6 +222,7 @@ namespace Naukri.Sqlite
 
         int IExecuteNonQueryable.ExecuteNonQuery()
         {
+            commandBuilder.Append(";");
             sqliteCommand.CommandText = CommandText;
             return sqliteCommand.ExecuteNonQuery();
         }
@@ -206,7 +234,9 @@ namespace Naukri.Sqlite
 
         SqliteDataReader IExecuteQueryable.ExecuteReader()
         {
-            throw new NotImplementedException();
+            commandBuilder.Append(";");
+            sqliteCommand.CommandText = CommandText;
+            return sqliteCommand.ExecuteReader();
         }
 
         public bool Serialize<T>(T obj, out byte[] binary)

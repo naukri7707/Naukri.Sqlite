@@ -18,7 +18,9 @@ namespace Naukri.Sqlite
 
     public interface ISelectable<Table>
     {
-        ISelect<Table> Select(params dynamic[] columns);
+        ISelect<Table> SelectAll();
+
+        ISelect<Table> Select(object schema);
     }
 
     public interface IUpdateable<Table>
