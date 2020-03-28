@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Reflection;
 
 namespace Naukri.Sqlite
 {
 
-    public struct NSqliteField
+    public struct NSqliteFieldInfo
     {
         private static readonly Dictionary<Type, NSqliteDataType> sqliteType = new Dictionary<Type, NSqliteDataType>
         {
@@ -32,15 +33,15 @@ namespace Naukri.Sqlite
             {typeof(object), NSqliteDataType.BLOB }
         };
 
-        private readonly PropertyInfo info;
+        internal PropertyInfo Info { get; set; }
 
         public string Name { get; }
 
         public NSqliteDataType Type { get; }
 
-        internal NSqliteField(PropertyInfo info)
+        internal NSqliteFieldInfo(PropertyInfo info)
         {
-            this.info = info;
+            Info = info;
             Name = info.GetCustomAttribute<SqliteFieldAttribute>(true).Name ?? info.Name;
             Type = sqliteType.TryGetValue(info.PropertyType, out var type) ? type : NSqliteDataType.BLOB;
         }
@@ -48,7 +49,7 @@ namespace Naukri.Sqlite
         internal string GetValueText(object row, out object blob)
         {
             blob = null;
-            var value = info.GetValue(row);
+            var value = Info.GetValue(row);
             if (value is null)
             {
                 return "NULL";
