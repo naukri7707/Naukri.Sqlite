@@ -49,19 +49,6 @@ namespace Naukri.Sqlite
         TResult Where(Expression<Func<bool>> expression);
 
         TResult Where(Expression<Func<Table, bool>> expression);
-
-        ICondition<TResult> Where<T>(T column);
-    }
-
-    public interface ICondition<TResult>
-    {
-        TResult Like(string expression);
-
-        TResult Glob(string expression);
-
-        TResult Between<T>(T min, T max);
-
-        TResult NotBetween<T>(T min, T max);
     }
 
     public interface IGroupByable<Table>

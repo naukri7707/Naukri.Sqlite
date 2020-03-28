@@ -11,8 +11,8 @@ using System.Text.RegularExpressions;
 namespace Naukri.Sqlite
 {
     public class NSqliteCommand<TTable>
-        : ICommand, IEntry<TTable>, IInsert, ISelect<TTable>, IUpdate<TTable>, IDelete<TTable>, IDistinct<TTable>,
-          IWhere<TTable>, IGroupBy<TTable>, IHaving<TTable>, IOrderBy, ILimit, IExecuteQuery, IExecuteNonQuery
+        : ICommand, IEntry<TTable>, IInsert, ISelect<TTable>, IUpdate<TTable>, IDelete<TTable>, IDistinct<TTable>, IWhere<TTable>,
+          ICondition<TTable>, IGroupBy<TTable>, IHaving<TTable>, IOrderBy, ILimit, IExecuteQuery, IExecuteNonQuery
     {
         private const BindingFlags BINDING_FLAGS = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
@@ -240,7 +240,7 @@ namespace Naukri.Sqlite
         {
             commandBuilder.Append(" DISTINCT");
             return this;
-        } 
+        }
         #endregion
 
         #region -- Where --
@@ -257,11 +257,6 @@ namespace Naukri.Sqlite
             return this;
         }
 
-        ICondition<IWhere<TTable>> IWhereable<TTable, IWhere<TTable>>.Where<T>(T column)
-        {
-            throw new NotImplementedException();
-        }
-
         IExecuteNonQuery IWhereable<TTable, IExecuteNonQuery>.Where(Expression<Func<bool>> expression)
         {
             commandBuilder.Append(" WHERE ", SqliteExpressionVisitor.GetSQL(expression));
@@ -272,11 +267,6 @@ namespace Naukri.Sqlite
         {
             commandBuilder.Append(" WHERE ", SqliteExpressionVisitor.GetSQL(expression));
             return this;
-        }
-
-        ICondition<IExecuteNonQuery> IWhereable<TTable, IExecuteNonQuery>.Where<T>(T column)
-        {
-            throw new NotImplementedException();
         }
 
         #endregion
@@ -330,7 +320,7 @@ namespace Naukri.Sqlite
         {
             throw new NotImplementedException();
         }
-       
+
 
         int IExecuteNonQueryable.ExecuteNonQuery()
         {
