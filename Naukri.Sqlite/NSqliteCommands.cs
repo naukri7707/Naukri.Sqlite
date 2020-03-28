@@ -70,7 +70,9 @@ namespace Naukri.Sqlite
 
     public interface ILimitable
     {
-        ILimit Limit(int count, int offset = 0);
+        ILimit Limit(int count);
+
+        ILimit Limit(int count, int offset);
     }
 
     public interface IExecuteQueryable

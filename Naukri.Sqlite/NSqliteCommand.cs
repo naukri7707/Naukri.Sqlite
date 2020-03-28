@@ -294,15 +294,35 @@ namespace Naukri.Sqlite
 
         #endregion
 
+        #region -- OrderBy --
+
         IOrderBy IOrderByable<TTable>.OrderBy(object fields, int sortBy)
         {
-            throw new NotImplementedException();
+            var infos = VerifyAndGetInfos(fields);
+            commandBuilder
+                .Append(" ORDER BY ")
+                .Append(infos, i => i.Name, ", ")
+                .Append(sortBy < 0 ? " DESC" : " ASC");
+            return this;
+        }
+
+        #endregion
+
+        #region -- Limit --
+
+        ILimit ILimitable.Limit(int count)
+        {
+            commandBuilder.Append(" LIMIT ", count.ToString());
+            return this;
         }
 
         ILimit ILimitable.Limit(int count, int offset)
         {
-            throw new NotImplementedException();
+            commandBuilder.Append(" LIMIT ", count.ToString(), " OFFSET ", offset.ToString());
+            return this;
         }
+
+        #endregion
 
         SqliteDataReader IExecuteQueryable.ExecuteReader()
         {
