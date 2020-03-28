@@ -7,7 +7,7 @@ namespace Naukri.Sqlite
 {
     public static class NSqliteExtensiionMethod
     {
-        public static NSqliteCommand<T> CreateCommand<T>(this SqliteConnection self)
+        public static NSqliteCommand<T> CreateCommand<T>(this SqliteConnection self) where T : new()
         {
             return new NSqliteCommand<T>(self);
         }
@@ -21,7 +21,7 @@ namespace Naukri.Sqlite
             return self;
         }
 
-        internal static StringBuilder AppendArray<T>(this StringBuilder self, T[] values, string separate)
+        internal static StringBuilder Append<T>(this StringBuilder self, T[] values, string separate)
         {
             foreach (var value in values)
             {
@@ -32,7 +32,7 @@ namespace Naukri.Sqlite
             return self;
         }
 
-        internal static StringBuilder AppendArray<TArray, TValue>(this StringBuilder self, TArray[] values, Func<TArray, TValue> func, string separate)
+        internal static StringBuilder Append<TArray, TValue>(this StringBuilder self, TArray[] values, Func<TArray, TValue> func, string separate)
         {
             foreach (var value in values)
             {
