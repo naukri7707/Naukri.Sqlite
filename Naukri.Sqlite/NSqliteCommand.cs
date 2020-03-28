@@ -38,7 +38,15 @@ namespace Naukri.Sqlite
 
         private readonly StringBuilder commandBuilder;
 
-        public override string CommandText => commandBuilder.ToString();
+        public override string CommandText
+        {
+            get
+            {
+                var res = commandBuilder.Append(';').ToString();
+                commandBuilder.Length--;
+                return res;
+            }
+        }
 
         public string TableName { get; }
 
@@ -381,8 +389,8 @@ namespace Naukri.Sqlite
             return sqliteCommand.ExecuteScalarAsync();
         }
 
-        #endregion 
-        
+        #endregion
+
         #endregion
     }
 }
