@@ -6,6 +6,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Naukri.Sqlite
 {
@@ -32,6 +33,8 @@ namespace Naukri.Sqlite
         public string CommandText => commandBuilder.ToString();
 
         public string TableName { get; }
+
+        string ICommandable.CommandText => throw new NotImplementedException();
 
         public NSqliteCommand() : this(null, null, null) { }
 
@@ -142,6 +145,37 @@ namespace Naukri.Sqlite
             return this;
         }
 
+        private bool Serialize<T>(T obj, out byte[] binary)
+        {
+            if (obj == null)
+            {
+                binary = null;
+                return false;
+            }
+            var bf = new BinaryFormatter();
+            using (var ms = new MemoryStream())
+            {
+                bf.Serialize(ms, obj);
+                binary = ms.ToArray();
+                return true;
+            }
+        }
+
+        private bool Deserialize<T>(byte[] binary, out T obj)
+        {
+            if (binary == null)
+            {
+                obj = default;
+                return false;
+            }
+            var bf = new BinaryFormatter();
+            using (var ms = new MemoryStream(binary))
+            {
+                obj = (T)bf.Deserialize(ms);
+                return true;
+            }
+        }
+
         #region -- Insert --
 
         public IInsert Insert(TTable data)
@@ -200,21 +234,52 @@ namespace Naukri.Sqlite
 
         #endregion
 
+        #region -- Distinct --
+
         IDistinct<TTable> IDistinctable<TTable>.Distinct()
         {
-            command.Append(" DISTINCT");
+            commandBuilder.Append(" DISTINCT");
+            return this;
+        } 
+        #endregion
+
+        #region -- Where --
+
+        IWhere<TTable> IWhereable<TTable, IWhere<TTable>>.Where(Expression<Func<bool>> expression)
+        {
+            commandBuilder.Append(" WHERE ", SqliteExpressionVisitor.GetSQL(expression));
             return this;
         }
 
         IWhere<TTable> IWhereable<TTable, IWhere<TTable>>.Where(Expression<Func<TTable, bool>> expression)
         {
-            throw new NotImplementedException();
+            commandBuilder.Append(" WHERE ", SqliteExpressionVisitor.GetSQL(expression));
+            return this;
         }
 
         ICondition<IWhere<TTable>> IWhereable<TTable, IWhere<TTable>>.Where<T>(T column)
         {
             throw new NotImplementedException();
         }
+
+        IExecuteNonQuery IWhereable<TTable, IExecuteNonQuery>.Where(Expression<Func<bool>> expression)
+        {
+            commandBuilder.Append(" WHERE ", SqliteExpressionVisitor.GetSQL(expression));
+            return this;
+        }
+
+        IExecuteNonQuery IWhereable<TTable, IExecuteNonQuery>.Where(Expression<Func<TTable, bool>> expression)
+        {
+            commandBuilder.Append(" WHERE ", SqliteExpressionVisitor.GetSQL(expression));
+            return this;
+        }
+
+        ICondition<IExecuteNonQuery> IWhereable<TTable, IExecuteNonQuery>.Where<T>(T column)
+        {
+            throw new NotImplementedException();
+        }
+
+        #endregion
 
         IGroupBy<TTable> IGroupByable<TTable>.GroupBy(params dynamic[] columns)
         {
@@ -246,12 +311,7 @@ namespace Naukri.Sqlite
             throw new NotImplementedException();
         }
 
-        void IExecuteQueryable.ExecuteReader(Action<SqliteDataReader> action)
-        {
-            throw new NotImplementedException();
-        }
-
-        T IExecuteQueryable.ExecuteReader<T>(Func<SqliteDataReader, T> func)
+        SqliteDataReader IExecuteQueryable.ExecuteReader()
         {
             throw new NotImplementedException();
         }
@@ -261,64 +321,25 @@ namespace Naukri.Sqlite
             throw new NotImplementedException();
         }
 
-        IExecuteNonQuery IWhereable<TTable, IExecuteNonQuery>.Where(Expression<Func<TTable, bool>> expression)
+        void IExecuteQueryable.ExecuteReader(Action<SqliteDataReader> action)
         {
             throw new NotImplementedException();
         }
 
-        ICondition<IExecuteNonQuery> IWhereable<TTable, IExecuteNonQuery>.Where<T>(T column)
+        T IExecuteQueryable.ExecuteReader<T>(Func<SqliteDataReader, T> func)
         {
             throw new NotImplementedException();
         }
+       
 
         int IExecuteNonQueryable.ExecuteNonQuery()
         {
-            commandBuilder.Append(";");
-            sqliteCommand.CommandText = CommandText;
-            return sqliteCommand.ExecuteNonQuery();
-        }
-
-        IHaving<TTable> IHavingable<TTable>.Having()
-        {
             throw new NotImplementedException();
         }
 
-        SqliteDataReader IExecuteQueryable.ExecuteReader()
+        public IHaving<TTable> Having()
         {
-            commandBuilder.Append(";");
-            sqliteCommand.CommandText = CommandText;
-            return sqliteCommand.ExecuteReader();
-        }
-
-        public bool Serialize<T>(T obj, out byte[] binary)
-        {
-            if (obj == null)
-            {
-                binary = null;
-                return false;
-            }
-            var bf = new BinaryFormatter();
-            using (var ms = new MemoryStream())
-            {
-                bf.Serialize(ms, obj);
-                binary = ms.ToArray();
-                return true;
-            }
-        }
-
-        public bool Deserialize<T>(byte[] binary, out T obj)
-        {
-            if (binary == null)
-            {
-                obj = default;
-                return false;
-            }
-            var bf = new BinaryFormatter();
-            using (var ms = new MemoryStream(binary))
-            {
-                obj = (T)bf.Deserialize(ms);
-                return true;
-            }
+            throw new NotImplementedException();
         }
     }
 }

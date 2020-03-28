@@ -46,6 +46,8 @@ namespace Naukri.Sqlite
 
     public interface IWhereable<Table, TResult>
     {
+        TResult Where(Expression<Func<bool>> expression);
+
         TResult Where(Expression<Func<Table, bool>> expression);
 
         ICondition<TResult> Where<T>(T column);
