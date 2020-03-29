@@ -51,26 +51,28 @@ namespace Naukri.Sqlite
                 }
 
                 // 連結至 Sqlite 新增或驗證資料架構
-                var conn = new SqliteConnection(ConnectionText);
-                conn.Open();
-                var cmd = conn.CreateCommand();
-                // 若 Sqlite 無同名的資料表，新增之
-                if (cmd.ExecuteScalar($"SELECT name FROM sqlite_master WHERE type='table' AND name='{table.TableName}';") is null)
+                using (var conn = new SqliteConnection(ConnectionText))
                 {
-                    var query = CreateSchema().Append(';').ToString();
-                    cmd.ExecuteNonQuery(query);
-                }
-                // 若 Sqlite 有同名的資料表，驗證之
-                else if (NSqlite.Option.HasFlag(NSqliteOption.CheckSchema))
-                {
-                    var sqliteSchema = cmd.ExecuteScalar($"SELECT sql FROM sqlite_master WHERE name == '{table.TableName}'").ToString();
-                    if (sqliteSchema != CreateSchema().ToString())
+                    conn.Open();
+                    using (var cmd = conn.CreateCommand())
                     {
-                        throw new Exception("C# 與 Sqlite 端的資料表架構不相同");
+                        // 若 Sqlite 無同名的資料表，新增之
+                        if (cmd.ExecuteScalar($"SELECT name FROM sqlite_master WHERE type='table' AND name='{table.TableName}';") is null)
+                        {
+                            var query = CreateSchema().Append(';').ToString();
+                            cmd.ExecuteNonQuery(query);
+                        }
+                        // 若 Sqlite 有同名的資料表，驗證之
+                        else if (NSqlite.Option.HasFlag(NSqliteOption.CheckSchema))
+                        {
+                            var sqliteSchema = cmd.ExecuteScalar($"SELECT sql FROM sqlite_master WHERE name == '{table.TableName}'").ToString();
+                            if (sqliteSchema != CreateSchema().ToString())
+                            {
+                                throw new Exception("C# 與 Sqlite 端的資料表架構不相同");
+                            }
+                        }
                     }
                 }
-                cmd.Dispose();
-                conn.Close();
             }
             return table as NSqliteTable<T>;
         }
