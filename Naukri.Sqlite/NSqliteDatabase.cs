@@ -14,7 +14,7 @@ namespace Naukri.Sqlite
 
         public NSqliteDatabase(string path)
         {
-            ConnectionText = path;
+            ConnectionText = $"data source={path}";
         }
 
         public NSqliteDatabase(string name, string path) : this(path)
