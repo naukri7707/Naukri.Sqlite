@@ -21,6 +21,16 @@ namespace Naukri.Sqlite
             return self;
         }
 
+        internal static StringBuilder Append(this StringBuilder self, params object[] values)
+        {
+            foreach (var value in values)
+            {
+                self.Append(value);
+            }
+            return self;
+        }
+
+
         internal static StringBuilder Append<T>(this StringBuilder self, T[] values, string separate)
         {
             foreach (var value in values)

@@ -6,9 +6,13 @@ using System.Text;
 
 namespace Naukri.Sqlite
 {
-    public class NSqliteTable
+    public abstract class NSqliteTable
     {
+        public abstract string ConnectionText { get; }
 
+        public abstract string TableName { get; }
+
+        internal abstract NSqliteFieldInfo[] SqliteFields { get; }
     }
 
     public class NSqliteTable<TTable> : NSqliteTable, IEntry<TTable>
@@ -46,11 +50,11 @@ namespace Naukri.Sqlite
             return tableInfo;
         }
 
-        public string ConnectionText { get; }
+        public override string ConnectionText { get; }
 
-        public string TableName { get; }
+        public override string TableName { get; }
 
-        internal NSqliteFieldInfo[] SqliteFields { get; }
+        internal override NSqliteFieldInfo[] SqliteFields { get; }
 
         internal NSqliteTable(string connectionText)
         {

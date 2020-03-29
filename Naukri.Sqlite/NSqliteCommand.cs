@@ -329,13 +329,13 @@ namespace Naukri.Sqlite
 
         ILimit ILimitable.Limit(int count)
         {
-            commandBuilder.Append(" LIMIT ", count.ToString());
+            commandBuilder.Append(" LIMIT ", count);
             return this;
         }
 
         ILimit ILimitable.Limit(int count, int offset)
         {
-            commandBuilder.Append(" LIMIT ", count.ToString(), " OFFSET ", offset.ToString());
+            commandBuilder.Append(" LIMIT ", count, " OFFSET ", offset);
             return this;
         }
 
