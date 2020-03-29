@@ -159,6 +159,23 @@ namespace Naukri.Sqlite
             return this;
         }
 
+        private T Execute<T>(Func<T> func)
+        {
+            if (Connection.State is ConnectionState.Broken)
+            {
+                sqliteCommand.Connection.Close();
+            }
+            if (Connection.State is ConnectionState.Closed)
+            {
+                sqliteCommand.Connection.Open();
+            }
+            sqliteCommand.CommandText = CommandText;
+            var res = func();
+            Log(sqliteCommand.CommandText);
+            sqliteCommand.Connection.Close();
+            return res;
+        }
+
         private bool Serialize<T>(T obj, out byte[] binary)
         {
             if (obj == null)
@@ -344,11 +361,7 @@ namespace Naukri.Sqlite
         #region -- ExecuteNonQuery --
 
         int IExecuteNonQueryable.ExecuteNonQuery()
-        {
-            sqliteCommand.CommandText = CommandText;
-            Log(sqliteCommand.CommandText);
-            return sqliteCommand.ExecuteNonQuery();
-        }
+            => Execute(() => sqliteCommand.ExecuteNonQuery());
 
         Task<int> IExecuteNonQueryable.ExecuteNonQueryAsync()
         {
@@ -362,11 +375,7 @@ namespace Naukri.Sqlite
         #region -- ExecuteQuery --
 
         SqliteDataReader IExecuteQueryable.ExecuteReader()
-        {
-            sqliteCommand.CommandText = CommandText;
-            Log(sqliteCommand.CommandText);
-            return sqliteCommand.ExecuteReader();
-        }
+            => Execute(() => sqliteCommand.ExecuteReader());
 
         Task<DbDataReader> IExecuteQueryable.ExecuteReaderAsync()
         {
@@ -376,11 +385,7 @@ namespace Naukri.Sqlite
         }
 
         object IExecuteQueryable.ExecuteScalar()
-        {
-            sqliteCommand.CommandText = CommandText;
-            Log(sqliteCommand.CommandText);
-            return sqliteCommand.ExecuteScalar();
-        }
+            => Execute(() => sqliteCommand.ExecuteScalar());
 
         Task<object> IExecuteQueryable.ExecuteScalarAsync()
         {
