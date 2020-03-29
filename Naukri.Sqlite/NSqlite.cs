@@ -7,5 +7,7 @@ namespace Naukri.Sqlite
     public static class NSqlite
     {
         public static Action<string> Log { get; set; }
+
+        public static NSqliteOption Option = NSqliteOption.CheckSchema;
     }
 }
