@@ -13,12 +13,11 @@ namespace Naukri.Sqlite
     {
         protected const BindingFlags BINDING_FLAGS = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
-
         public abstract string CommandText { get; }
     }
 
     public class NSqliteCommand<TTable>
-        : NSqliteCommand, IEntry<TTable>, IInsert, ISelect<TTable>, IUpdate<TTable>, IDelete<TTable>, IDistinct<TTable>
+        : NSqliteCommand, IDisposable, IEntry<TTable>, IInsert, ISelect<TTable>, IUpdate<TTable>, IDelete<TTable>, IDistinct<TTable>
         , IWhere<TTable>, IGroupBy<TTable>, IHaving<TTable>, IOrderBy, ILimit, IExecute, IExecuteQuery, IExecuteNonQuery
     {
         #region -- InnerSqliteCommand
@@ -34,6 +33,8 @@ namespace Naukri.Sqlite
         private readonly NSqliteFieldInfo[] sqliteFields;
 
         private readonly StringBuilder commandBuilder;
+
+        private bool isDisposed = false;
 
         public override string CommandText
         {
@@ -352,5 +353,30 @@ namespace Naukri.Sqlite
         #endregion
 
         #endregion
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (isDisposed)
+            {
+                if (disposing)
+                {
+                    sqliteCommand?.Dispose();
+                    Connection?.Dispose();
+                }
+
+                isDisposed = true;
+            }
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        ~NSqliteCommand()
+        {
+            Dispose(false);
+        }
     }
 }
