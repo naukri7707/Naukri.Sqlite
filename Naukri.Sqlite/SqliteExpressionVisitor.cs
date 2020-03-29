@@ -1,18 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Text;
 
 namespace Naukri.Sqlite
 {
-    public class SqliteExpressionVisitor : ExpressionVisitor
+    internal class SqliteExpressionVisitor : ExpressionVisitor
     {
-        public StringBuilder Query { get; private set; } = new StringBuilder();
+        internal StringBuilder Query { get; private set; } = new StringBuilder();
 
-        public static string GetSQL(Expression expression)
+        internal static string GetSQL(Expression expression)
         {
             var v = new SqliteExpressionVisitor();
             v.Visit(expression);
@@ -75,7 +72,6 @@ namespace Naukri.Sqlite
                     return "<<";
                 case ExpressionType.RightShift:
                     return ">>";
-               
                 // 例外
                 default:
                     throw new Exception("不合法的 SQL");
