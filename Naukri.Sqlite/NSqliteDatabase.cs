@@ -26,7 +26,7 @@ namespace Naukri.Sqlite
         public NSqliteTable<T> Table<T>()
         {
             var type = typeof(T);
-            if (tables.TryGetValue(type, out var nSqliteTable))
+            if (!tables.TryGetValue(type, out var nSqliteTable))
             {
                 nSqliteTable = new NSqliteTable<T>(ConnectionText);
                 tables[type] = nSqliteTable;
