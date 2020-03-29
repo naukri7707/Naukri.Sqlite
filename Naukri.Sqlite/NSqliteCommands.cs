@@ -1,8 +1,6 @@
 ﻿using Mono.Data.Sqlite;
 using System;
-using System.Data.Common;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
 
 namespace Naukri.Sqlite
 {
@@ -80,19 +78,13 @@ namespace Naukri.Sqlite
     public interface IExecuteNonQueryable
     {
         int ExecuteNonQuery();
-
-        Task<int> ExecuteNonQueryAsync();
     }
 
     public interface IExecuteQueryable
     {
         SqliteDataReader ExecuteReader();
 
-        Task<DbDataReader> ExecuteReaderAsync();
-
         object ExecuteScalar();
-
-        Task<object> ExecuteScalarAsync();
     }
 
     public interface IEntry<Table> : IInsertable<Table>, ISelectable<Table>, IUpdateable<Table>, IDeleteable<Table> { }
