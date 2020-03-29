@@ -62,6 +62,15 @@ namespace Naukri.Sqlite
             commandBuilder = new StringBuilder(commandText);
             // 取得資料表架構
             (TableName, sqliteFields) = NSqliteTable<TTable>.GetTableInfo();
+            // 開啟資料庫連線
+            if (Connection.State is ConnectionState.Broken)
+            {
+                sqliteCommand.Connection.Close();
+            }
+            if (Connection.State is ConnectionState.Closed)
+            {
+                sqliteCommand.Connection.Open();
+            }
         }
 
         public static implicit operator SqliteCommand(NSqliteCommand<TTable> command) => command.sqliteCommand;
@@ -135,16 +144,7 @@ namespace Naukri.Sqlite
 
         private T Execute<T>(Func<T> func)
         {
-            if (Connection.State is ConnectionState.Broken)
-            {
-                sqliteCommand.Connection.Close();
-            }
-            if (Connection.State is ConnectionState.Closed)
-            {
-                sqliteCommand.Connection.Open();
-            }
             var res = func();
-            sqliteCommand.Connection.Close();
             return res;
         }
 
