@@ -22,7 +22,7 @@ namespace Naukri.Sqlite
 
     public class NSqliteCommand<TTable>
         : NSqliteCommand, IEntry<TTable>, IInsert, ISelect<TTable>, IUpdate<TTable>, IDelete<TTable>, IDistinct<TTable>
-        , IWhere<TTable>, IGroupBy<TTable>, IHaving<TTable>, IOrderBy, ILimit, IExecuteQuery, IExecuteNonQuery
+        , IWhere<TTable>, IGroupBy<TTable>, IHaving<TTable>, IOrderBy, ILimit, IExecute, IExecuteQuery, IExecuteNonQuery
     {
         #region -- InnerSqliteCommand
 
@@ -63,36 +63,12 @@ namespace Naukri.Sqlite
             sqliteCommand = new SqliteCommand(null, connection, transaction);
             commandBuilder = new StringBuilder(commandText);
             // 取得資料表架構
-            var schemaType = typeof(TTable);
-            var tableAttr = schemaType.GetCustomAttribute<SqliteTableAttribute>();
-            if (tableAttr is null)
-            {
-                throw new Exception($"{typeof(TTable).Name} 需要有 Table 標籤 e.g. [SqliteTable(\"{typeof(TTable).Name}\")]");
-            }
-            TableName = tableAttr.Name;
-            // 取得有效的欄位資訊
-            var props = schemaType.GetProperties(BINDING_FLAGS);
-            sqliteFields = new NSqliteFieldInfo[props.Length];
-            int len = 0;
-            foreach (var prop in props)
-            {
-                if (prop.GetCustomAttribute<SqliteFieldAttribute>() != null)
-                {
-                    sqliteFields[len++] = new NSqliteFieldInfo(prop);
-                }
-            }
-            Array.Resize(ref sqliteFields, len);
-        }
-
-        private NSqliteCommand(SqliteCommand sqliteCommand)
-        {
-            this.sqliteCommand = sqliteCommand;
-            commandBuilder = new StringBuilder(sqliteCommand.CommandText);
+            (TableName, sqliteFields) = NSqliteTable<TTable>.GetTableInfo();
         }
 
         public static implicit operator SqliteCommand(NSqliteCommand<TTable> command) => command.sqliteCommand;
 
-        public static implicit operator NSqliteCommand<TTable>(SqliteCommand command) => new NSqliteCommand<TTable>(command);
+        public static implicit operator NSqliteCommand<TTable>(SqliteCommand command) => new NSqliteCommand<TTable>(command.CommandText);
 
         private NSqliteFieldInfo[] VerifyAndGetInfos(object data)
         {
@@ -208,6 +184,13 @@ namespace Naukri.Sqlite
         }
 
         #region -- Commands --
+
+        public IExecute Command(string command)
+        {
+            commandBuilder.Clear();
+            commandBuilder.Append(command);
+            return this;
+        }
 
         #region -- Insert --
 

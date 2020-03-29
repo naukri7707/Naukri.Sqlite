@@ -8,12 +8,12 @@ namespace Naukri.Sqlite
     public class NSqliteDatabase
     {
         public static Dictionary<string, NSqliteDatabase> Find { get; } = new Dictionary<string, NSqliteDatabase>();
-        
-        public string Path { get; set; }
+
+        public string ConnectionText { get; }
 
         public NSqliteDatabase(string path)
         {
-            Path = path;
+            ConnectionText = path;
         }
 
         public NSqliteDatabase(string name, string path) : this(path)
@@ -21,30 +21,18 @@ namespace Naukri.Sqlite
             Find[name] = this;
         }
 
-        public SqliteConnection NewConnection() => new SqliteConnection(Path);
+        public readonly Dictionary<Type, NSqliteTable> tables = new Dictionary<Type, NSqliteTable>();
 
-        public void NewConnection(Action<SqliteConnection> action)
+        public NSqliteTable<T> Table<T>()
         {
-            try
+            var type = typeof(T);
+            if (tables.TryGetValue(type, out var nSqliteTable))
             {
-                var conn = new SqliteConnection(Path);
-                conn.Open();
-                action(conn);
-                conn.Close();
+                nSqliteTable = new NSqliteTable<T>(ConnectionText);
+                tables[type] = nSqliteTable;
             }
-            catch(Exception e)
-            {
-                throw e;
-            }
+            return nSqliteTable as NSqliteTable<T>;
         }
-
-        public async void NewConnectionAsync(Func<SqliteConnection, Task> action)
-        {
-            var conn = new SqliteConnection(Path);
-            conn.Open();
-            await action(conn);
-            conn.Close();
-        }
-
     }
+
 }

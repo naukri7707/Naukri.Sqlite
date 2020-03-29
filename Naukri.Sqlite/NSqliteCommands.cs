@@ -95,9 +95,9 @@ namespace Naukri.Sqlite
         Task<object> ExecuteScalarAsync();
     }
 
-    public interface ICommand : ICommandable { }
+    public interface IEntry<Table> : IInsertable<Table>, ISelectable<Table>, IUpdateable<Table>, IDeleteable<Table> { }
 
-    public interface IEntry<Table> : ICommandable, IInsertable<Table>, ISelectable<Table>, IUpdateable<Table>, IDeleteable<Table> { }
+    public interface ICommand : ICommandable { }
 
     public interface IInsert : ICommand, IExecuteNonQueryable { }
 
@@ -119,8 +119,9 @@ namespace Naukri.Sqlite
 
     public interface ILimit : ICommand, IExecuteQueryable { };
 
+    public interface IExecute : ICommand, IExecuteQueryable, IExecuteNonQueryable { }
+
     public interface IExecuteQuery : ICommand, IExecuteQueryable { }
 
     public interface IExecuteNonQuery : ICommand, IExecuteNonQueryable { }
-
 }
