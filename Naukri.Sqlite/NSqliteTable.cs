@@ -1,5 +1,7 @@
 ﻿using Mono.Data.Sqlite;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq.Expressions;
@@ -8,9 +10,10 @@ using System.Text;
 
 namespace Naukri.Sqlite
 {
-    public sealed class NSqliteTable<TTable>
-        : IDisposable, IEntry<TTable>, IInsert, ISelect<TTable>, IUpdate<TTable>, IDelete<TTable>, IDistinct<TTable>
-        , IWhere<TTable>, IGroupBy<TTable>, IHaving<TTable>, IOrderBy, ILimit, IExecute, IExecuteQuery, IExecuteNonQuery
+    public sealed class NSqliteTable<Table>
+        : IDisposable, IEnumerable<Table>, IEntry<Table>, IInsert, ISelect<Table>, IUpdate<Table>, IDelete<Table>, IDistinct<Table>
+        , IWhere<Table>, IGroupBy<Table>, IHaving<Table>, IOrderBy, ILimit, IExecute, IExecuteQuery, IExecuteNonQuery
+        where Table : new()
     {
         SqliteConnection Connection { get; set; }
 
@@ -30,7 +33,7 @@ namespace Naukri.Sqlite
 
         public NSqliteTable()
         {
-            var info = NSqliteTableInfo.GetTableInfo<TTable>();
+            var info = NSqliteTableInfo.GetTableInfo<Table>();
             Connection = new SqliteConnection(info.ConnectionText);
             Command = new SqliteCommand(Connection);
             Connection.Open();
@@ -86,7 +89,7 @@ namespace Naukri.Sqlite
             return this;
         }
 
-        private IUpdate<TTable> UpdateCommandBuilder(object data, NSqliteFieldInfo[] fields)
+        private IUpdate<Table> UpdateCommandBuilder(object data, NSqliteFieldInfo[] fields)
         {
             commandBuilder
             .Append("UPDATE ", TableName, " SET ")
@@ -107,6 +110,7 @@ namespace Naukri.Sqlite
         private T Execute<T>(Func<T> func)
         {
             var res = func();
+            commandBuilder.Clear();
             return res;
         }
 
@@ -152,13 +156,13 @@ namespace Naukri.Sqlite
 
         #region -- Insert --
 
-        public IInsert Insert(TTable data)
+        public IInsert Insert(Table data)
             => InsertCommandBuilder("INSERT", data, fieldInfos);
 
         public IInsert Insert(object data)
             => InsertCommandBuilder("INSERT", data, VerifyAndGetInfos(data));
 
-        public IInsert InsertOrReplace(TTable data)
+        public IInsert InsertOrReplace(Table data)
             => InsertCommandBuilder("REPLACE", data, fieldInfos);
 
         public IInsert InsertOrReplace(object data)
@@ -168,13 +172,13 @@ namespace Naukri.Sqlite
 
         #region -- Select --
 
-        public ISelect<TTable> SelectAll()
+        public ISelect<Table> SelectAll()
         {
             commandBuilder.Append("SELECT * FROM ", TableName);
             return this;
         }
 
-        public ISelect<TTable> Select(object fields)
+        public ISelect<Table> Select(object fields)
         {
             var infos = VerifyAndGetInfos(fields);
             commandBuilder
@@ -188,17 +192,17 @@ namespace Naukri.Sqlite
 
         #region -- Update --
 
-        public IUpdate<TTable> Update(TTable data)
+        public IUpdate<Table> Update(Table data)
             => UpdateCommandBuilder(data, fieldInfos);
 
-        public IUpdate<TTable> Update(object data)
+        public IUpdate<Table> Update(object data)
             => UpdateCommandBuilder(data, VerifyAndGetInfos(data));
 
         #endregion
 
         #region  -- Delete --
 
-        public IDelete<TTable> Delete()
+        public IDelete<Table> Delete()
         {
             commandBuilder.Append("DELETE FROM ", TableName);
             return this;
@@ -208,7 +212,7 @@ namespace Naukri.Sqlite
 
         #region -- Distinct --
 
-        IDistinct<TTable> IDistinctable<TTable>.Distinct()
+        IDistinct<Table> IDistinctable<Table>.Distinct()
         {
             commandBuilder.Append(" DISTINCT");
             return this;
@@ -218,25 +222,25 @@ namespace Naukri.Sqlite
 
         #region -- Where --
 
-        IWhere<TTable> IWhereable<TTable, IWhere<TTable>>.Where(Expression<Func<bool>> expression)
+        IWhere<Table> IWhereable<Table, IWhere<Table>>.Where(Expression<Func<bool>> expression)
         {
             commandBuilder.Append(" WHERE ", SqliteExpressionVisitor.GetSQL(expression));
             return this;
         }
 
-        IWhere<TTable> IWhereable<TTable, IWhere<TTable>>.Where(Expression<Func<TTable, bool>> expression)
+        IWhere<Table> IWhereable<Table, IWhere<Table>>.Where(Expression<Func<Table, bool>> expression)
         {
             commandBuilder.Append(" WHERE ", SqliteExpressionVisitor.GetSQL(expression));
             return this;
         }
 
-        IExecuteNonQuery IWhereable<TTable, IExecuteNonQuery>.Where(Expression<Func<bool>> expression)
+        IExecuteNonQuery IWhereable<Table, IExecuteNonQuery>.Where(Expression<Func<bool>> expression)
         {
             commandBuilder.Append(" WHERE ", SqliteExpressionVisitor.GetSQL(expression));
             return this;
         }
 
-        IExecuteNonQuery IWhereable<TTable, IExecuteNonQuery>.Where(Expression<Func<TTable, bool>> expression)
+        IExecuteNonQuery IWhereable<Table, IExecuteNonQuery>.Where(Expression<Func<Table, bool>> expression)
         {
             commandBuilder.Append(" WHERE ", SqliteExpressionVisitor.GetSQL(expression));
             return this;
@@ -246,7 +250,7 @@ namespace Naukri.Sqlite
 
         #region -- GroupBy & Having --
 
-        IGroupBy<TTable> IGroupByable<TTable>.GroupBy(object fields)
+        IGroupBy<Table> IGroupByable<Table>.GroupBy(object fields)
         {
             var infos = VerifyAndGetInfos(fields);
             commandBuilder
@@ -255,13 +259,13 @@ namespace Naukri.Sqlite
             return this;
         }
 
-        IHaving<TTable> IHavingable<TTable>.Having(Expression<Func<bool>> expression)
+        IHaving<Table> IHavingable<Table>.Having(Expression<Func<bool>> expression)
         {
             commandBuilder.Append(" HAVING ", SqliteExpressionVisitor.GetSQL(expression));
             return this;
         }
 
-        IHaving<TTable> IHavingable<TTable>.Having(Expression<Func<TTable, bool>> expression)
+        IHaving<Table> IHavingable<Table>.Having(Expression<Func<Table, bool>> expression)
         {
             commandBuilder.Append(" HAVING ", SqliteExpressionVisitor.GetSQL(expression));
             return this;
@@ -271,7 +275,7 @@ namespace Naukri.Sqlite
 
         #region -- OrderBy --
 
-        IOrderBy IOrderByable<TTable>.OrderBy(object fields, int sortBy)
+        IOrderBy IOrderByable<Table>.OrderBy(object fields, int sortBy)
         {
             var infos = VerifyAndGetInfos(fields);
             commandBuilder
@@ -306,7 +310,7 @@ namespace Naukri.Sqlite
 
 
         SqliteDataReader IExecuteQueryable.ExecuteReader()
-            => Execute(() => Command.ExecuteReader(CommandText));
+            => Execute(() => DataReader = Command.ExecuteReader(CommandText));
 
 
         object IExecuteQueryable.ExecuteScalar()
@@ -350,5 +354,94 @@ namespace Naukri.Sqlite
             Dispose(true);
         }
 
+        public IEnumerator<Table> GetEnumerator()
+        {
+            using (SqliteCommand command = new SqliteCommand(Connection)
+            {
+                CommandText = $"SELECT * FROM {TableName}"
+            })
+            {
+                SqliteDataReader reader = command.ExecuteReader();
+                return new Query<Table>(reader, fieldInfos);
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        public class Query<T> : IEnumerator<T> where T : new()
+        {
+            public T Current
+            {
+                get
+                {
+                    var res = new T();
+                    for (int i = fields.Length - 1; i >= 0; i--)
+                    {
+                        var dbData = reader[i];
+                        if (dbData is DBNull)
+                        {
+                            continue;
+                        }
+                        bool Deserialize<U>(byte[] binary, out U obj)
+                        {
+                            if (binary == null)
+                            {
+                                obj = default;
+                                return false;
+                            }
+                            var bf = new BinaryFormatter();
+                            using (var ms = new MemoryStream(binary))
+                            {
+                                obj = (U)bf.Deserialize(ms);
+                                return true;
+                            }
+                        }
+                        object data = null;
+                        if (fields[i].Type == NSqliteDataType.BLOB)
+                        {
+                            if (!Deserialize(dbData as byte[], out data))
+                            {
+                                throw new Exception("Deserialize Fail");
+                            }
+                        }
+                        else
+                        {
+                            data = Convert.ChangeType(dbData, fields[i].Info.PropertyType);
+                        }
+                        fields[i].Info.SetValue(res, data);
+                    }
+                    return res;
+                }
+            }
+
+            T IEnumerator<T>.Current => Current;
+
+            object IEnumerator.Current => Current;
+
+            private readonly SqliteDataReader reader;
+
+            private readonly NSqliteFieldInfo[] fields;
+
+            internal Query(SqliteDataReader reader, NSqliteFieldInfo[] fields)
+            {
+                this.reader = reader;
+                this.fields = fields;
+            }
+
+            public bool MoveNext()
+            {
+                return reader.Read();
+            }
+
+            public void Reset()
+            {
+                throw new NotImplementedException();
+            }
+
+            public void Dispose()
+            {
+                reader.Close();
+            }
+        }
     }
 }
