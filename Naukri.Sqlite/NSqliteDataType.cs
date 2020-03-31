@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Naukri.Sqlite
 {
-    public enum NSqliteDataType
+    internal enum NSqliteDataType
     {
         INTEGER,
         REAL,

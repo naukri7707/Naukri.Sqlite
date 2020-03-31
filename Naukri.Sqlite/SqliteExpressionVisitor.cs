@@ -1,19 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Reflection;
 using System.Text;
 
 namespace Naukri.Sqlite
 {
     internal class SqliteExpressionVisitor : ExpressionVisitor
     {
-        internal StringBuilder Query { get; private set; } = new StringBuilder();
+        private readonly StringBuilder query  = new StringBuilder();
 
         internal static string GetSQL(Expression expression)
         {
             var v = new SqliteExpressionVisitor();
             v.Visit(expression);
-            return v.Query.ToString();
+            return v.query.ToString();
         }
 
         private string GetValueText(object obj)
@@ -28,8 +29,9 @@ namespace Naukri.Sqlite
             }
         }
 
-        private string ConvertOperator(ExpressionType type)
+        private string ConvertOperator(ExpressionType type, out bool brackets)
         {
+            brackets = true;
             switch (type)
             {
                 // 算術運算子
@@ -45,16 +47,22 @@ namespace Naukri.Sqlite
                     return " % ";
                 // 比較運算子
                 case ExpressionType.Equal:
+                    brackets = false;
                     return " == ";
                 case ExpressionType.NotEqual:
+                    brackets = false;
                     return " != ";
                 case ExpressionType.GreaterThan:
+                    brackets = false;
                     return " > ";
                 case ExpressionType.GreaterThanOrEqual:
+                    brackets = false;
                     return " >= ";
                 case ExpressionType.LessThan:
+                    brackets = false;
                     return " < ";
                 case ExpressionType.LessThanOrEqual:
+                    brackets = false;
                     return " <= ";
                 // 邏輯運算子
                 case ExpressionType.OrElse:
@@ -66,7 +74,7 @@ namespace Naukri.Sqlite
                     return " & ";
                 case ExpressionType.Or:
                     return " | ";
-                case ExpressionType.Not:
+                case ExpressionType.OnesComplement:
                     return "~";
                 case ExpressionType.LeftShift:
                     return "<<";
@@ -80,21 +88,34 @@ namespace Naukri.Sqlite
 
         protected override Expression VisitBinary(BinaryExpression node)
         {
+            var sb = ConvertOperator(node.NodeType, out bool brackets);
+            if (brackets) query.Append('(');
             Visit(node.Left);
-            Query.Append(ConvertOperator(node.NodeType));
+            query.Append(sb);
             Visit(node.Right);
+            if (brackets) query.Append(')');
             return node;
         }
 
         protected override Expression VisitMember(MemberExpression node)
         {
-            Query.Append(node.Member.Name);
+            if (node.Member.GetCustomAttribute<SqliteFieldAttribute>() is null)
+            {
+                var member = Expression.Convert(node, typeof(object));
+                var lambda = Expression.Lambda<Func<object>>(member);
+                var value = lambda.Compile();
+                query.Append(value());
+            }
+            else
+            {
+                query.Append(node.Member.Name);
+            }
             return node;
         }
 
         protected override Expression VisitConstant(ConstantExpression node)
         {
-            Query.Append(GetValueText(node.Value));
+            query.Append(GetValueText(node.Value));
             return node;
         }
     }

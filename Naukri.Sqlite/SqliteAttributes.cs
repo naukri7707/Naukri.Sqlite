@@ -33,7 +33,6 @@ namespace Naukri.Sqlite
         }
     }
 
-
     public abstract class SqliteConstraintAttribute : SqliteAttribute
     {
         public abstract string Text { get; }

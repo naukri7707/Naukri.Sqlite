@@ -2,17 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace Naukri.Sqlite
 {
-    public static class NSqliteExtensiionMethod
+    internal static class NSqliteExtensiionMethod
     {
-        public static NSqliteCommand<T> CreateCommand<T>(this SqliteConnection self) where T : new()
-        {
-            return new NSqliteCommand<T>(self);
-        }
-
         internal static int ExecuteNonQuery(this SqliteCommand self, string command)
         {
             NSqlite.Log(command);
@@ -52,7 +46,7 @@ namespace Naukri.Sqlite
             return self;
         }
 
-        internal static StringBuilder Append<T>(this StringBuilder self, T[] values, string separate)
+        internal static StringBuilder Append<T>(this StringBuilder self, IEnumerable<T> values, string separate)
         {
             foreach (var value in values)
             {
@@ -63,7 +57,7 @@ namespace Naukri.Sqlite
             return self;
         }
 
-        internal static StringBuilder Append<TArray, TValue>(this StringBuilder self, TArray[] values, Func<TArray, TValue> func, string separate)
+        internal static StringBuilder Append<T, U>(this StringBuilder self, IEnumerable<T> values, Func<T, U> func, string separate)
         {
             foreach (var value in values)
             {

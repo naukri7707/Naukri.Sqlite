@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Reflection;
 
 namespace Naukri.Sqlite
 {
-
-    public struct NSqliteFieldInfo
+    internal struct NSqliteFieldInfo
     {
         private static readonly Dictionary<Type, NSqliteDataType> sqliteType = new Dictionary<Type, NSqliteDataType>
         {
@@ -35,9 +33,9 @@ namespace Naukri.Sqlite
 
         internal PropertyInfo Info { get; set; }
 
-        public string Name { get; }
+        internal string Name { get; }
 
-        public NSqliteDataType Type { get; }
+        internal NSqliteDataType Type { get; }
 
         internal NSqliteFieldInfo(PropertyInfo info)
         {
