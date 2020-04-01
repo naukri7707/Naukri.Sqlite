@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq.Expressions;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 
 namespace Naukri.Sqlite
@@ -184,6 +183,17 @@ namespace Naukri.Sqlite
                 .Append("SELECT ")
                 .Append(infos, i => i.Name, ", ")
                 .Append(" FROM ", tableName);
+            return this;
+        }
+
+        /// <summary>
+        /// 讀取資料比數
+        /// </summary>
+        public ISelect<Table> Count()
+        {
+            commandBuilder
+                .Clear()
+                .Append("SELECT count(*) FROM ", tableName);
             return this;
         }
 

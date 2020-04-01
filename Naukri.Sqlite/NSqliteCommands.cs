@@ -27,6 +27,8 @@ namespace Naukri.Sqlite
         ISelect<Table> SelectAll();
 
         ISelect<Table> Select(object fields);
+
+        ISelect<Table> Count();
     }
 
     public interface IUpdateable<Table>
