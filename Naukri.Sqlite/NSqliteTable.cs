@@ -10,34 +10,52 @@ using System.Text;
 
 namespace Naukri.Sqlite
 {
+    /// <summary>
+    /// 資料表工具
+    /// </summary>
+    /// <typeparam name="Table">目標資料表</typeparam>
     public sealed class NSqliteTable<Table>
         : IDisposable, IEnumerable<Table>, IEntry<Table>, IInsert, ISelect<Table>, IUpdate<Table>, IDelete<Table>, IDistinct<Table>
         , IWhere<Table>, IGroupBy<Table>, IHaving<Table>, IOrderBy<Table>, ILimit<Table>, IExecute, IExecuteQuery, IExecuteNonQuery
         where Table : new()
     {
-        SqliteConnection Connection { get; set; }
+        /// <summary>
+        /// 資料庫連線工具
+        /// </summary>
+        public SqliteConnection Connection { get; set; }
 
-        SqliteCommand Command { get; set; }
+        /// <summary>
+        /// 資料庫指令工具
+        /// </summary>
+        public SqliteCommand Command { get; set; }
 
-        internal NSqliteTableInfo Info { get; }
-
-        public string TableName { get; }
-
-        private readonly NSqliteFieldInfo[] fieldInfos;
+        /// <summary>
+        /// 指令字串
+        /// </summary>
+        public string CommandText
+        {
+            get => commandBuilder.ToString();
+            set => commandBuilder.Clear().Append(value);
+        }
 
         private readonly StringBuilder commandBuilder = new StringBuilder();
 
-        public string CommandText => commandBuilder.ToString();
+        private readonly string tableName;
+
+        private readonly NSqliteFieldInfo[] fieldInfos;
 
         private bool IsDisposed = false;
 
+        /// <summary>
+        /// 建立資料表工具
+        /// </summary>
         public NSqliteTable()
         {
             var info = NSqliteTableInfo.GetTableInfo<Table>();
             Connection = new SqliteConnection(info.ConnectionText);
             Command = new SqliteCommand(Connection);
             Connection.Open();
-            TableName = info.Name;
+            tableName = info.Name;
             fieldInfos = info.FieldInfos;
         }
 
@@ -69,72 +87,74 @@ namespace Naukri.Sqlite
 
         private IInsert InsertCommandBuilder(string command, object data, NSqliteFieldInfo[] fields)
         {
-            commandBuilder.Clear();
             commandBuilder
-            .Append(command, " INTO ", TableName, " (")
-            .Append(fields, f => f.Name, ", ")
-            .Append(") VALUES (")
-            .Append(fields, (Func<NSqliteFieldInfo, string>)(f =>
-            {
-                var valueText = f.GetValueText(data, out var blob);
-                if (NSqlite.Serialize(blob, out byte[] sData)) // 處理 BLOB 物件
+                .Clear()
+                .Append(command, " INTO ", tableName, " (")
+                .Append(fields, f => f.Name, ", ")
+                .Append(") VALUES (")
+                .Append(fields, f =>
                 {
-                    Command.Prepare();
-                    Command.Parameters.Add(valueText, DbType.Binary, sData.Length);
-                    Command.Parameters[valueText].Value = sData;
-                }
-                return valueText;
-            }), ", ")
-            .Append(")");
+                    var valueText = f.GetValueText(data, out var blob);
+                    if (NSqlite.Serialize(blob, out byte[] sData)) // 處理 BLOB 物件
+                    {
+                        Command.Prepare();
+                        Command.Parameters.Add(valueText, DbType.Binary, sData.Length);
+                        Command.Parameters[valueText].Value = sData;
+                    }
+                    return valueText;
+                }, ", ")
+                .Append(")");
             return this;
         }
 
         private IUpdate<Table> UpdateCommandBuilder(object data, NSqliteFieldInfo[] fields)
         {
-            commandBuilder.Clear();
             commandBuilder
-            .Append("UPDATE ", TableName, " SET ")
-            .Append(fields, f =>
-            {
-                var valueText = f.GetValueText(data, out var blob);
-                if (NSqlite.Serialize(blob, out byte[] sData)) // 處理 BLOB 物件
+                .Clear()
+                .Append("UPDATE ", tableName, " SET ")
+                .Append(fields, f =>
                 {
-                    this.Command.Prepare();
-                    this.Command.Parameters.Add(valueText, DbType.Binary, sData.Length);
-                    this.Command.Parameters[valueText].Value = sData;
-                }
-                return $"{f.Name} = {valueText}";
-            }, ", ");
+                    var valueText = f.GetValueText(data, out var blob);
+                    if (NSqlite.Serialize(blob, out byte[] sData)) // 處理 BLOB 物件
+                    {
+                        Command.Prepare();
+                        Command.Parameters.Add(valueText, DbType.Binary, sData.Length);
+                        Command.Parameters[valueText].Value = sData;
+                    }
+                    return $"{f.Name} = {valueText}";
+                }, ", ");
             return this;
-        }
-
-        private T Execute<T>(Func<T> func)
-        {
-            var res = func();
-            commandBuilder.Clear();
-            return res;
         }
 
         #region -- Commands --
 
-        public IExecute MakeCommand(string command)
-        {
-            commandBuilder.Clear();
-            commandBuilder.Append(command);
-            return this;
-        }
-
         #region -- Insert --
 
+        /// <summary>
+        /// 建立一筆包含全部欄位的資料
+        /// </summary>
+        /// <param name="data">新增資料</param>
         public IInsert Insert(Table data)
             => InsertCommandBuilder("INSERT", data, fieldInfos);
 
+        /// <summary>
+        /// 建立一筆包含特定欄位的資料
+        /// </summary>
+        /// <param name="data">新增資料</param>
         public IInsert Insert(object data)
             => InsertCommandBuilder("INSERT", data, VerifyAndGetInfos(data));
 
+        /// <summary>
+        /// 建立或取代一筆包含全部欄位的資料
+        /// </summary>
+        /// <param name="data">新增資料</param>
         public IInsert InsertOrReplace(Table data)
             => InsertCommandBuilder("REPLACE", data, fieldInfos);
 
+        /// <summary>
+        /// 建立或取代一筆包含特定欄位的資料
+        /// </summary>
+        /// <param name="data">新增資料</param>
         public IInsert InsertOrReplace(object data)
             => InsertCommandBuilder("REPLACE", data, VerifyAndGetInfos(data));
 
@@ -142,21 +162,28 @@ namespace Naukri.Sqlite
 
         #region -- Select --
 
+        /// <summary>
+        /// 讀取全部欄位
+        /// </summary>
         public ISelect<Table> SelectAll()
         {
-            commandBuilder.Clear();
-            commandBuilder.Append("SELECT * FROM ", TableName);
+            commandBuilder.Clear().Append("SELECT * FROM ", tableName);
             return this;
         }
 
+        /// <summary>
+        /// 讀取特定欄位
+        /// </summary>
+        /// <param name="fields">欄位</param>
+        /// <returns></returns>
         public ISelect<Table> Select(object fields)
         {
-            commandBuilder.Clear();
             var infos = VerifyAndGetInfos(fields);
             commandBuilder
+                .Clear()
                 .Append("SELECT ")
                 .Append(infos, i => i.Name, ", ")
-                .Append(" FROM ", TableName);
+                .Append(" FROM ", tableName);
             return this;
         }
 
@@ -164,9 +191,17 @@ namespace Naukri.Sqlite
 
         #region -- Update --
 
+        /// <summary>
+        /// 更新一筆包含全部欄位的資料
+        /// </summary>
+        /// <param name="data">更新資料</param>
         public IUpdate<Table> Update(Table data)
             => UpdateCommandBuilder(data, fieldInfos);
 
+        /// <summary>
+        /// 更新一筆包含特定欄位的資料
+        /// </summary>
+        /// <param name="data">更新資料</param>
         public IUpdate<Table> Update(object data)
             => UpdateCommandBuilder(data, VerifyAndGetInfos(data));
 
@@ -174,10 +209,12 @@ namespace Naukri.Sqlite
 
         #region  -- Delete --
 
+        /// <summary>
+        /// 刪除資料
+        /// </summary>
         public IDelete<Table> Delete()
         {
-            commandBuilder.Clear();
-            commandBuilder.Append("DELETE FROM ", TableName);
+            commandBuilder.Clear().Append("DELETE FROM ", tableName);
             return this;
         }
 
@@ -279,14 +316,14 @@ namespace Naukri.Sqlite
         #region -- Execute --
 
         SqliteDataReader IExecuteQueryable.ExecuteReader()
-            => Execute(() => Command.ExecuteReader(CommandText));
+            => Command.ExecuteReader(CommandText);
 
         object IExecuteQueryable.ExecuteScalar()
-            => Execute(() => Command.ExecuteScalar(CommandText));
+            => Command.ExecuteScalar(CommandText);
 
 
         int IExecuteNonQueryable.ExecuteNonQuery()
-            => Execute(() => Command.ExecuteNonQuery(CommandText));
+            => Command.ExecuteNonQuery(CommandText);
 
         #endregion
 

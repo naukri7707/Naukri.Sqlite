@@ -17,7 +17,7 @@ namespace Naukri.Sqlite
                 : throw new Exception($"尚未初始化資料表，請使用 NSqlite.CreateTable<{typeof(T)}>()");
         }
 
-        internal static void SetTableInfo<T>(string connectionText)
+        internal static void CreateTableInfo<T>(string connectionText)
         {
             var type = typeof(T);
             var tableAttr = type.GetCustomAttribute<SqliteTableAttribute>();
