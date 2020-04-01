@@ -1,5 +1,7 @@
 ﻿using System;
+using System.IO;
 using System.Reflection;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace Naukri.Sqlite
 {
@@ -10,6 +12,37 @@ namespace Naukri.Sqlite
         public static Action<string> Log { get; set; }
 
         public static NSqliteOption Option = NSqliteOption.CheckSchema;
+
+        public static bool Serialize<T>(T obj, out byte[] binary)
+        {
+            if (obj == null)
+            {
+                binary = null;
+                return false;
+            }
+            var bf = new BinaryFormatter();
+            using (var ms = new MemoryStream())
+            {
+                bf.Serialize(ms, obj);
+                binary = ms.ToArray();
+                return true;
+            }
+        }
+
+        public static bool Deserialize<T>(byte[] binary, out T obj)
+        {
+            if (binary == null)
+            {
+                obj = default;
+                return false;
+            }
+            var bf = new BinaryFormatter();
+            using (var ms = new MemoryStream(binary))
+            {
+                obj = (T)bf.Deserialize(ms);
+                return true;
+            }
+        }
 
         public static void CreateTable<Table>(string connectionText)
         {
