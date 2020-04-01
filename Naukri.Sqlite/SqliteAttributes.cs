@@ -33,6 +33,7 @@ namespace Naukri.Sqlite
         }
     }
 
+    [AttributeUsage(AttributeTargets.Property)]
     public abstract class SqliteConstraintAttribute : SqliteAttribute
     {
         public abstract string Text { get; }
@@ -58,7 +59,7 @@ namespace Naukri.Sqlite
         public override string Text => "NOT NULL";
     }
 
-    sealed class DefaultAttribute : SqliteConstraintAttribute
+    public sealed class DefaultAttribute : SqliteConstraintAttribute
     {
         public override string Text => $"DEFAULT {DefaultValue}";
 
