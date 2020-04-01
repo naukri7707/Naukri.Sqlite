@@ -12,7 +12,9 @@ namespace Naukri.Sqlite
 
         internal static NSqliteTableInfo GetTableInfo<T>()
         {
-            return tableInfos.TryGetValue(typeof(T), out var info) ? info : null;
+            return tableInfos.TryGetValue(typeof(T), out var info) 
+                ? info 
+                : throw new Exception($"尚未初始化資料表，請使用 NSqlite.CreateTable<{typeof(T)}>()");
         }
 
         internal static void SetTableInfo<T>(string connectionText)
@@ -35,7 +37,7 @@ namespace Naukri.Sqlite
                 }
             }
             Array.Resize(ref fieldInfos, len);
-            // TODO 資料庫端驗證
+            // 資料庫端驗證
             using (var conn = new SqliteConnection(connectionText))
             {
                 StringBuilder CreateSchema()
@@ -74,8 +76,7 @@ namespace Naukri.Sqlite
                     }
                 }
             }
-
-
+            // 儲存資料表快取
             tableInfos[type] = new NSqliteTableInfo(tableAttr.Name, fieldInfos, connectionText);
         }
 
