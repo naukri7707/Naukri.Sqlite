@@ -37,11 +37,24 @@ namespace Naukri.Sqlite
 
         internal NSqliteDataType Type { get; }
 
+        internal NSqliteConstraint Constraint { get; }
+
         internal NSqliteFieldInfo(PropertyInfo info)
         {
             Info = info;
-            Name = info.GetCustomAttribute<SqliteFieldAttribute>(true).Name ?? info.Name;
+            Name = info.GetCustomAttribute<SqliteFieldAttribute>(false).Name ?? info.Name;
             Type = sqliteType.TryGetValue(info.PropertyType, out var type) ? type : NSqliteDataType.BLOB;
+            Constraint = NSqliteConstraint.None;
+            foreach (var constraint in info.GetCustomAttributes<SqliteConstraintAttribute>(true))
+            {
+                Constraint |= constraint.Constraint;
+            }
+        }
+
+        internal NSqliteFieldInfo(NSqliteFieldInfo fieldInfo, PropertyInfo info)
+        {
+            this = fieldInfo;
+            Info = info;
         }
 
         internal string GetValueText(object row, out object blob)

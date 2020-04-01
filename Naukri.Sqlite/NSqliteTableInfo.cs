@@ -12,8 +12,8 @@ namespace Naukri.Sqlite
 
         internal static NSqliteTableInfo GetTableInfo<T>()
         {
-            return tableInfos.TryGetValue(typeof(T), out var info) 
-                ? info 
+            return tableInfos.TryGetValue(typeof(T), out var info)
+                ? info
                 : throw new Exception($"尚未初始化資料表，請使用 NSqlite.CreateTable<{typeof(T)}>()");
         }
 
@@ -48,7 +48,7 @@ namespace Naukri.Sqlite
                         var attributes = field.Info.GetCustomAttributes<SqliteConstraintAttribute>(true);
                         queryBuilder
                             .Append(field.Name, ' ', field.Type, ' ')   // 欄位資料
-                            .Append(attributes, attr => attr.Text, " ") // 欄位約束
+                            .Append(attributes, " ") // 欄位約束
                             .Append(",");
                     }
                     queryBuilder.Length--;

@@ -43,6 +43,21 @@ namespace Naukri.Sqlite
 
         private readonly NSqliteFieldInfo[] fieldInfos;
 
+        private IEnumerable<NSqliteFieldInfo> NonAutoFieldInfos
+        {
+            get
+            {
+                foreach(var info in fieldInfos)
+                {
+                    if (info.Constraint.HasFlag(NSqliteConstraint.Autoincrement))
+                    {
+                        continue;
+                    }
+                    yield return info;
+                }
+            }
+        }
+
         private bool IsDisposed = false;
 
         /// <summary>
@@ -58,33 +73,37 @@ namespace Naukri.Sqlite
             fieldInfos = info.FieldInfos;
         }
 
-        private NSqliteFieldInfo[] VerifyAndGetInfos(object data)
+        private IEnumerable<NSqliteFieldInfo> VerifyAndGetInfos(object data, bool verifyAutoincrement = false)
         {
             // 取得資料架構
             var type = data.GetType();
             var infos = type.GetProperties(NSqlite.BINDING_FLAGS);
             // 驗證所有屬性皆具有 SqliteField 特性並回傳對應的 NSqliteFieldInfo[]
-            var res = new NSqliteFieldInfo[infos.Length];
             for (int i = 0; i < infos.Length; i++)
             {
-                int j = fieldInfos.Length;
+                bool isMatch = false;
                 // 比對是否有相同的名稱被註冊 (是 NSqliteField)
-                while (--j >= 0 && infos[i].Name != fieldInfos[j].Info.Name)
-                    ;
-                if (j >= 0)
+                foreach (var field in fieldInfos)
                 {
-                    res[i] = fieldInfos[j];
-                    res[i].Info = infos[i];
+                    if (infos[i].Name == field.Info.Name)
+                    {
+                        if (verifyAutoincrement && field.Constraint.HasFlag(NSqliteConstraint.Autoincrement))
+                        {
+                            throw new Exception($"欄位\"{infos[i].Name}\" 含有 [Autoincrement] 屬性，故無法被設置");
+                        }
+                        yield return new NSqliteFieldInfo(field, infos[i]);
+                        isMatch = true;
+                        break;
+                    }
                 }
-                else
+                if (!isMatch)
                 {
-                    throw new Exception($"成員\"{infos[i].Name}\" 缺少 [SqliteField] 標籤");
+                    throw new Exception($"欄位\"{infos[i].Name}\" 缺少 [SqliteField] 屬性，故無法被設置");
                 }
             }
-            return res;
         }
 
-        private IInsert InsertCommandBuilder(string command, object data, NSqliteFieldInfo[] fields)
+        private IInsert InsertCommandBuilder(string command, object data, IEnumerable<NSqliteFieldInfo> fields)
         {
             commandBuilder
                 .Clear()
@@ -106,7 +125,7 @@ namespace Naukri.Sqlite
             return this;
         }
 
-        private IUpdate<Table> UpdateCommandBuilder(object data, NSqliteFieldInfo[] fields)
+        private IUpdate<Table> UpdateCommandBuilder(object data, IEnumerable<NSqliteFieldInfo> fields)
         {
             commandBuilder
                 .Clear()
@@ -134,28 +153,28 @@ namespace Naukri.Sqlite
         /// </summary>
         /// <param name="data">新增資料</param>
         public IInsert Insert(Table data)
-            => InsertCommandBuilder("INSERT", data, fieldInfos);
+            => InsertCommandBuilder("INSERT", data, NonAutoFieldInfos);
 
         /// <summary>
         /// 建立一筆包含特定欄位的資料
         /// </summary>
         /// <param name="data">新增資料</param>
         public IInsert Insert(object data)
-            => InsertCommandBuilder("INSERT", data, VerifyAndGetInfos(data));
+            => InsertCommandBuilder("INSERT", data, VerifyAndGetInfos(data, true));
 
         /// <summary>
         /// 建立或取代一筆包含全部欄位的資料
         /// </summary>
         /// <param name="data">新增資料</param>
         public IInsert InsertOrReplace(Table data)
-            => InsertCommandBuilder("REPLACE", data, fieldInfos);
+            => InsertCommandBuilder("REPLACE", data, NonAutoFieldInfos);
 
         /// <summary>
         /// 建立或取代一筆包含特定欄位的資料
         /// </summary>
         /// <param name="data">新增資料</param>
         public IInsert InsertOrReplace(object data)
-            => InsertCommandBuilder("REPLACE", data, VerifyAndGetInfos(data));
+            => InsertCommandBuilder("REPLACE", data, VerifyAndGetInfos(data, true));
 
         #endregion
 
@@ -206,14 +225,14 @@ namespace Naukri.Sqlite
         /// </summary>
         /// <param name="data">更新資料</param>
         public IUpdate<Table> Update(Table data)
-            => UpdateCommandBuilder(data, fieldInfos);
+            => UpdateCommandBuilder(data, NonAutoFieldInfos);
 
         /// <summary>
         /// 更新一筆包含特定欄位的資料
         /// </summary>
         /// <param name="data">更新資料</param>
         public IUpdate<Table> Update(object data)
-            => UpdateCommandBuilder(data, VerifyAndGetInfos(data));
+            => UpdateCommandBuilder(data, VerifyAndGetInfos(data, true));
 
         #endregion
 
@@ -374,7 +393,7 @@ namespace Naukri.Sqlite
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        internal class TableQuery<T> : IEnumerator<T> where T : new()
+        private class TableQuery<T> : IEnumerator<T> where T : new()
         {
             public T Current
             {

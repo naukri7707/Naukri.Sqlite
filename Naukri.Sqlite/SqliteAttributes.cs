@@ -36,55 +36,62 @@ namespace Naukri.Sqlite
     [AttributeUsage(AttributeTargets.Property)]
     public abstract class SqliteConstraintAttribute : SqliteAttribute
     {
-        public abstract string Text { get; }
-
-        public override string ToString()
-        {
-            return Text;
-        }
+        public abstract NSqliteConstraint Constraint { get; }
     }
 
     public sealed class PrimaryKeyAttribute : SqliteConstraintAttribute
     {
-        public override string Text => "PRIMARY KEY";
+        public override NSqliteConstraint Constraint => NSqliteConstraint.PrimaryKey;
+
+        public override string ToString() => "PRIMARY KEY";
     }
 
     public sealed class UniqueAttribute : SqliteConstraintAttribute
     {
-        public override string Text => "UNIQUE";
+        public override NSqliteConstraint Constraint => NSqliteConstraint.Unique;
+
+        public override string ToString() => "UNIQUE";
     }
 
     public sealed class NotNullAttribute : SqliteConstraintAttribute
     {
-        public override string Text => "NOT NULL";
+        public override NSqliteConstraint Constraint => NSqliteConstraint.NotNull;
+
+        public override string ToString() => "NOT NULL";
     }
 
     public sealed class DefaultAttribute : SqliteConstraintAttribute
     {
-        public override string Text => $"DEFAULT {DefaultValue}";
+        public override NSqliteConstraint Constraint => NSqliteConstraint.Default;
 
-        public object DefaultValue { get; }
+        private readonly string text;
 
         public DefaultAttribute(object defaultValue)
         {
-            DefaultValue = defaultValue;
+            text = $"DEFAULT {defaultValue}";
         }
+
+        public override string ToString() => text;
     }
 
     public sealed class CheckAttribute : SqliteConstraintAttribute
     {
-        public override string Text => $"CHECK({CheckValue})";
+        public override NSqliteConstraint Constraint => NSqliteConstraint.Check;
+       
+        private readonly string text;
 
-        public string CheckValue { get; }
-
-        public CheckAttribute(string checkValue)
+        public CheckAttribute(string checkExpression)
         {
-            CheckValue = checkValue;
+            text = $"CHECK({checkExpression})";
         }
+
+        public override string ToString() => text;
     }
 
     public sealed class AutoincrementAttribute : SqliteConstraintAttribute
     {
-        public override string Text => "AUTOINCREMENT";
+        public override NSqliteConstraint Constraint => NSqliteConstraint.Autoincrement;
+
+        public override string ToString() => "AUTOINCREMENT";
     }
 }
