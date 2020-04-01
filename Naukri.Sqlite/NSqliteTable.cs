@@ -12,14 +12,12 @@ namespace Naukri.Sqlite
 {
     public sealed class NSqliteTable<Table>
         : IDisposable, IEnumerable<Table>, IEntry<Table>, IInsert, ISelect<Table>, IUpdate<Table>, IDelete<Table>, IDistinct<Table>
-        , IWhere<Table>, IGroupBy<Table>, IHaving<Table>, IOrderBy, ILimit, IExecute, IExecuteQuery, IExecuteNonQuery
+        , IWhere<Table>, IGroupBy<Table>, IHaving<Table>, IOrderBy<Table>, ILimit<Table>, IExecute, IExecuteQuery, IExecuteNonQuery
         where Table : new()
     {
         SqliteConnection Connection { get; set; }
 
         SqliteCommand Command { get; set; }
-
-        SqliteDataReader DataReader { get; set; }
 
         internal NSqliteTableInfo Info { get; }
 
@@ -31,6 +29,8 @@ namespace Naukri.Sqlite
 
         public string CommandText => commandBuilder.ToString();
 
+        private bool IsDisposed = false;
+
         public NSqliteTable()
         {
             var info = NSqliteTableInfo.GetTableInfo<Table>();
@@ -40,7 +40,6 @@ namespace Naukri.Sqlite
             TableName = info.Name;
             fieldInfos = info.FieldInfos;
         }
-
 
         private NSqliteFieldInfo[] VerifyAndGetInfos(object data)
         {
@@ -70,6 +69,7 @@ namespace Naukri.Sqlite
 
         private IInsert InsertCommandBuilder(string command, object data, NSqliteFieldInfo[] fields)
         {
+            commandBuilder.Clear();
             commandBuilder
             .Append(command, " INTO ", TableName, " (")
             .Append(fields, f => f.Name, ", ")
@@ -77,7 +77,7 @@ namespace Naukri.Sqlite
             .Append(fields, (Func<NSqliteFieldInfo, string>)(f =>
             {
                 var valueText = f.GetValueText(data, out var blob);
-                if (Serialize(blob, out byte[] sData)) // 處理 BLOB 物件
+                if (NSqlite.Serialize(blob, out byte[] sData)) // 處理 BLOB 物件
                 {
                     Command.Prepare();
                     Command.Parameters.Add(valueText, DbType.Binary, sData.Length);
@@ -91,12 +91,13 @@ namespace Naukri.Sqlite
 
         private IUpdate<Table> UpdateCommandBuilder(object data, NSqliteFieldInfo[] fields)
         {
+            commandBuilder.Clear();
             commandBuilder
             .Append("UPDATE ", TableName, " SET ")
             .Append(fields, f =>
             {
                 var valueText = f.GetValueText(data, out var blob);
-                if (Serialize(blob, out byte[] sData)) // 處理 BLOB 物件
+                if (NSqlite.Serialize(blob, out byte[] sData)) // 處理 BLOB 物件
                 {
                     this.Command.Prepare();
                     this.Command.Parameters.Add(valueText, DbType.Binary, sData.Length);
@@ -112,37 +113,6 @@ namespace Naukri.Sqlite
             var res = func();
             commandBuilder.Clear();
             return res;
-        }
-
-        private bool Serialize<T>(T obj, out byte[] binary)
-        {
-            if (obj == null)
-            {
-                binary = null;
-                return false;
-            }
-            var bf = new BinaryFormatter();
-            using (var ms = new MemoryStream())
-            {
-                bf.Serialize(ms, obj);
-                binary = ms.ToArray();
-                return true;
-            }
-        }
-
-        private bool Deserialize<T>(byte[] binary, out T obj)
-        {
-            if (binary == null)
-            {
-                obj = default;
-                return false;
-            }
-            var bf = new BinaryFormatter();
-            using (var ms = new MemoryStream(binary))
-            {
-                obj = (T)bf.Deserialize(ms);
-                return true;
-            }
         }
 
         #region -- Commands --
@@ -174,12 +144,14 @@ namespace Naukri.Sqlite
 
         public ISelect<Table> SelectAll()
         {
+            commandBuilder.Clear();
             commandBuilder.Append("SELECT * FROM ", TableName);
             return this;
         }
 
         public ISelect<Table> Select(object fields)
         {
+            commandBuilder.Clear();
             var infos = VerifyAndGetInfos(fields);
             commandBuilder
                 .Append("SELECT ")
@@ -204,6 +176,7 @@ namespace Naukri.Sqlite
 
         public IDelete<Table> Delete()
         {
+            commandBuilder.Clear();
             commandBuilder.Append("DELETE FROM ", TableName);
             return this;
         }
@@ -275,7 +248,7 @@ namespace Naukri.Sqlite
 
         #region -- OrderBy --
 
-        IOrderBy IOrderByable<Table>.OrderBy(object fields, int sortBy)
+        IOrderBy<Table> IOrderByable<Table>.OrderBy(object fields, int sortBy)
         {
             var infos = VerifyAndGetInfos(fields);
             commandBuilder
@@ -289,13 +262,13 @@ namespace Naukri.Sqlite
 
         #region -- Limit --
 
-        ILimit ILimitable.Limit(int count)
+        ILimit<Table> ILimitable<Table>.Limit(int count)
         {
             commandBuilder.Append(" LIMIT ", count);
             return this;
         }
 
-        ILimit ILimitable.Limit(int count, int offset)
+        ILimit<Table> ILimitable<Table>.Limit(int count, int offset)
         {
             commandBuilder.Append(" LIMIT ", count, " OFFSET ", offset);
             return this;
@@ -305,21 +278,15 @@ namespace Naukri.Sqlite
 
         #region -- Execute --
 
-        int IExecuteNonQueryable.ExecuteNonQuery()
-            => Execute(() => Command.ExecuteNonQuery(CommandText));
-
-
         SqliteDataReader IExecuteQueryable.ExecuteReader()
-            => Execute(() => DataReader = Command.ExecuteReader(CommandText));
-
+            => Execute(() => Command.ExecuteReader(CommandText));
 
         object IExecuteQueryable.ExecuteScalar()
             => Execute(() => Command.ExecuteScalar(CommandText));
 
-        #region IDisposable Support
-        private bool IsDisposed = false; // 偵測多餘的呼叫
 
-        #endregion
+        int IExecuteNonQueryable.ExecuteNonQuery()
+            => Execute(() => Command.ExecuteNonQuery(CommandText));
 
         #endregion
 
@@ -333,13 +300,11 @@ namespace Naukri.Sqlite
                 {
                     try
                     {
-                        DataReader?.Close();
                         Command?.Dispose();
                         Connection?.Dispose();
                     }
                     finally
                     {
-                        DataReader = null;
                         Command = null;
                         Connection = null;
                     }
@@ -356,19 +321,13 @@ namespace Naukri.Sqlite
 
         public IEnumerator<Table> GetEnumerator()
         {
-            using (SqliteCommand command = new SqliteCommand(Connection)
-            {
-                CommandText = $"SELECT * FROM {TableName}"
-            })
-            {
-                SqliteDataReader reader = command.ExecuteReader();
-                return new Query<Table>(reader, fieldInfos);
-            }
+            var reader = Command.ExecuteReader(CommandText);
+            return new TableQuery<Table>(reader, fieldInfos);
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-        public class Query<T> : IEnumerator<T> where T : new()
+        internal class TableQuery<T> : IEnumerator<T> where T : new()
         {
             public T Current
             {
@@ -382,24 +341,10 @@ namespace Naukri.Sqlite
                         {
                             continue;
                         }
-                        bool Deserialize<U>(byte[] binary, out U obj)
-                        {
-                            if (binary == null)
-                            {
-                                obj = default;
-                                return false;
-                            }
-                            var bf = new BinaryFormatter();
-                            using (var ms = new MemoryStream(binary))
-                            {
-                                obj = (U)bf.Deserialize(ms);
-                                return true;
-                            }
-                        }
-                        object data = null;
+                        object data;
                         if (fields[i].Type == NSqliteDataType.BLOB)
                         {
-                            if (!Deserialize(dbData as byte[], out data))
+                            if (!NSqlite.Deserialize(dbData as byte[], out data))
                             {
                                 throw new Exception("Deserialize Fail");
                             }
@@ -422,10 +367,22 @@ namespace Naukri.Sqlite
 
             private readonly NSqliteFieldInfo[] fields;
 
-            internal Query(SqliteDataReader reader, NSqliteFieldInfo[] fields)
+            internal TableQuery(SqliteDataReader reader, NSqliteFieldInfo[] fields)
             {
                 this.reader = reader;
-                this.fields = fields;
+                this.fields = new NSqliteFieldInfo[reader.FieldCount];
+                int len = 0;
+                for (int i = 0; i < reader.FieldCount; i++)
+                {
+                    foreach (var field in fields)
+                    {
+                        if (field.Name == reader.GetName(i))
+                        {
+                            this.fields[len++] = field;
+                        }
+                    }
+                }
+                Array.Resize(ref this.fields, len);
             }
 
             public bool MoveNext()
@@ -435,7 +392,7 @@ namespace Naukri.Sqlite
 
             public void Reset()
             {
-                throw new NotImplementedException();
+                throw new NotImplementedException("不支援反覆讀取");
             }
 
             public void Dispose()

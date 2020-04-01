@@ -1,5 +1,7 @@
 ﻿using Mono.Data.Sqlite;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 
 namespace Naukri.Sqlite
@@ -65,14 +67,14 @@ namespace Naukri.Sqlite
 
     public interface IOrderByable<Table>
     {
-        IOrderBy OrderBy(object fields, int sortBy = 1);
+        IOrderBy<Table> OrderBy(object fields, int sortBy = 1);
     }
 
-    public interface ILimitable
+    public interface ILimitable<Table>
     {
-        ILimit Limit(int count);
+        ILimit<Table> Limit(int count);
 
-        ILimit Limit(int count, int offset);
+        ILimit<Table> Limit(int count, int offset);
     }
 
     public interface IExecuteNonQueryable
@@ -93,23 +95,25 @@ namespace Naukri.Sqlite
 
     public interface IInsert : ICommand, IExecuteNonQueryable { }
 
-    public interface ISelect<Table> : ICommand, IDistinctable<Table>, IWhereable<Table, IWhere<Table>>, IGroupByable<Table>, IOrderByable<Table>, ILimitable, IExecuteQueryable { }
+    public interface ISelect<Table> : ICommand, IEnumerable<Table>, IDistinctable<Table>, IWhereable<Table, IWhere<Table>>,
+                     IGroupByable<Table>, IOrderByable<Table>, ILimitable<Table>, IExecuteQueryable { }
 
     public interface IUpdate<Table> : ICommand, IWhereable<Table, IExecuteNonQuery>, IExecuteNonQueryable { }
 
     public interface IDelete<Table> : ICommand, IWhereable<Table, IExecuteNonQuery>, IExecuteNonQueryable { }
 
-    public interface IDistinct<Table> : ICommand, IWhereable<Table, IWhere<Table>>, IGroupByable<Table>, IOrderByable<Table>, ILimitable, IExecuteQueryable { }
+    public interface IDistinct<Table> : ICommand, IEnumerable<Table>, IWhereable<Table, IWhere<Table>>, IGroupByable<Table>,
+                     IOrderByable<Table>, ILimitable<Table>, IExecuteQueryable { }
 
-    public interface IWhere<Table> : ICommand, IGroupByable<Table>, IOrderByable<Table>, ILimitable, IExecuteQueryable { }
+    public interface IWhere<Table> : ICommand, IEnumerable<Table>, IGroupByable<Table>, IOrderByable<Table>, ILimitable<Table>, IExecuteQueryable { }
 
-    public interface IGroupBy<Table> : ICommand, IHavingable<Table>, IOrderByable<Table>, ILimitable, IExecuteQueryable { }
+    public interface IGroupBy<Table> : ICommand, IEnumerable<Table>, IHavingable<Table>, IOrderByable<Table>, ILimitable<Table>, IExecuteQueryable { }
 
-    public interface IHaving<Table> : ICommand, IOrderByable<Table>, ILimitable, IExecuteQueryable { }
+    public interface IHaving<Table> : ICommand, IEnumerable<Table>, IOrderByable<Table>, ILimitable<Table>, IExecuteQueryable { }
 
-    public interface IOrderBy : ICommand, ILimitable, IExecuteQueryable { }
+    public interface IOrderBy<Table> : ICommand, IEnumerable<Table>, ILimitable<Table>, IExecuteQueryable { }
 
-    public interface ILimit : ICommand, IExecuteQueryable { };
+    public interface ILimit<Table> : ICommand, IEnumerable<Table>, IExecuteQueryable { };
 
     public interface IExecute : ICommand, IExecuteQueryable, IExecuteNonQueryable { }
 
